@@ -35,7 +35,6 @@
             overflow-x: hidden;
         }
 
-        /* === BACKGROUND TEXTURE === */
         body::before {
             content: '';
             position: fixed;
@@ -48,7 +47,6 @@
             z-index: 0;
         }
 
-        /* === HEADER === */
         header {
             position: relative;
             z-index: 10;
@@ -83,20 +81,24 @@
             letter-spacing: -0.02em;
         }
 
-        .brand-title span {
-            color: var(--sage);
+        .brand-title span { color: var(--sage); }
+
+        .header-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.6rem;
+            padding-bottom: 0.4rem;
         }
 
         .header-meta {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            padding-bottom: 0.4rem;
         }
 
         .live-dot {
-            width: 7px;
-            height: 7px;
+            width: 7px; height: 7px;
             border-radius: 50%;
             background: var(--sage);
             animation: livepulse 2s ease infinite;
@@ -114,6 +116,74 @@
             letter-spacing: 0.18em;
             text-transform: uppercase;
         }
+
+        /* === SORT TOGGLE === */
+        .sort-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--cream);
+            border: 1px solid var(--card-border);
+            border-radius: 2rem;
+            padding: 0.3rem 0.75rem 0.3rem 0.55rem;
+            cursor: pointer;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+            box-shadow: var(--shadow-card);
+            user-select: none;
+        }
+
+        .sort-toggle:hover {
+            border-color: var(--sage);
+            box-shadow: 0 2px 12px rgba(122, 158, 90, 0.15);
+        }
+
+        .sort-toggle.active {
+            background: var(--sage-pale);
+            border-color: var(--sage);
+        }
+
+        .sort-icon {
+            display: flex;
+            flex-direction: column;
+            gap: 2.5px;
+            width: 14px;
+        }
+
+        .sort-icon span {
+            display: block;
+            height: 1.5px;
+            background: var(--ink-soft);
+            border-radius: 2px;
+            transition: background 0.2s, width 0.25s ease;
+        }
+
+        .sort-icon span:nth-child(1) { width: 100%; }
+        .sort-icon span:nth-child(2) { width: 70%; }
+        .sort-icon span:nth-child(3) { width: 40%; }
+
+        .sort-toggle.active .sort-icon span { background: var(--sage); }
+
+        /* Arrow indicator for sort direction */
+        .sort-arrow {
+            font-size: 0.6rem;
+            color: var(--ink-soft);
+            transition: transform 0.25s ease, color 0.2s;
+            line-height: 1;
+        }
+
+        .sort-toggle.active .sort-arrow { color: var(--sage); }
+        .sort-toggle.desc .sort-arrow { transform: rotate(180deg); }
+
+        .sort-label {
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.58rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--ink-soft);
+            transition: color 0.2s;
+        }
+
+        .sort-toggle.active .sort-label { color: var(--sage); font-weight: 700; }
 
         .divider {
             height: 1px;
@@ -142,7 +212,7 @@
             border-radius: 1.25rem;
             padding: 1.25rem 1.4rem 1rem;
             box-shadow: var(--shadow-card);
-            transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+            transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.2s ease, opacity 0.3s ease;
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
@@ -183,7 +253,29 @@
             50% { box-shadow: 0 6px 30px rgba(212, 131, 10, 0.2); }
         }
 
-        /* card header row */
+        /* Sort rank badge */
+        .rank-badge {
+            position: absolute;
+            top: 0.6rem;
+            right: 0.6rem;
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: var(--sage-pale);
+            border: 1px solid var(--sage-light);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.5rem;
+            font-weight: 900;
+            color: var(--sage);
+            letter-spacing: 0;
+            transition: opacity 0.3s;
+            z-index: 2;
+        }
+
+        body.sort-active .rank-badge { display: flex; }
+
         .card-top {
             display: flex;
             align-items: center;
@@ -225,9 +317,7 @@
             padding: 0;
         }
 
-        .task-name:focus {
-            border-bottom-color: var(--sage-light);
-        }
+        .task-name:focus { border-bottom-color: var(--sage-light); }
 
         .delete-btn {
             flex-shrink: 0;
@@ -244,7 +334,6 @@
 
         .delete-btn:hover { color: #e05252; background: #fff0f0; }
 
-        /* time display */
         .time-row {
             display: flex;
             align-items: center;
@@ -295,10 +384,7 @@
             50% { opacity: 0.15; }
         }
 
-        /* status */
-        .status-row {
-            text-align: center;
-        }
+        .status-row { text-align: center; }
 
         .status-text {
             font-family: 'Nunito', sans-serif;
@@ -356,16 +442,15 @@
             opacity: 0.6;
         }
 
-        /* === RESPONSIVE === */
         @media (max-width: 640px) {
             header { padding: 1.5rem 1.25rem 0; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+            .header-right { align-items: flex-start; }
             .divider { margin: 1rem 1.25rem 0; }
             .grid-wrap { padding: 1.25rem 1.25rem 2rem; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
             .brand-title { font-size: 2rem; }
             .time-input { font-size: 2.1rem; }
         }
 
-        /* === ENTRY ANIMATION === */
         .timer-card, .add-card {
             animation: cardIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
@@ -373,6 +458,11 @@
         @keyframes cardIn {
             from { opacity: 0; transform: translateY(10px) scale(0.97); }
             to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Sort transition for reorder */
+        .grid-wrap.sorting .timer-card {
+            transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.35s cubic-bezier(0.22,1,0.36,1), opacity 0.3s ease;
         }
     </style>
 </head>
@@ -383,9 +473,19 @@
         <span class="brand-eyebrow">Task Flow · 任務流</span>
         <h1 class="brand-title">計時<span>器</span></h1>
     </div>
-    <div class="header-meta">
-        <div class="live-dot"></div>
-        <span class="live-label">即時計時</span>
+    <div class="header-right">
+        <div class="header-meta">
+            <div class="live-dot"></div>
+            <span class="live-label">即時計時</span>
+        </div>
+        <!-- Sort Toggle Button -->
+        <button class="sort-toggle" id="sort-btn" onclick="toggleSort()" title="依剩餘時間排序">
+            <div class="sort-icon">
+                <span></span><span></span><span></span>
+            </div>
+            <span class="sort-label">排序</span>
+            <span class="sort-arrow">▲</span>
+        </button>
     </div>
 </header>
 
@@ -398,11 +498,66 @@
         { id: Date.now(), name: '輸入名稱', initialSeconds: 0, remainingSeconds: 0, isActive: false }
     ];
 
+    // Sort state: 'none' | 'asc' | 'desc'
+    let sortMode = 'none';
+
+    function toggleSort() {
+        if (sortMode === 'none') sortMode = 'asc';
+        else if (sortMode === 'asc') sortMode = 'desc';
+        else sortMode = 'none';
+
+        const btn = document.getElementById('sort-btn');
+        const arrow = btn.querySelector('.sort-arrow');
+
+        if (sortMode === 'none') {
+            btn.classList.remove('active', 'desc');
+            document.body.classList.remove('sort-active');
+        } else if (sortMode === 'asc') {
+            btn.classList.add('active');
+            btn.classList.remove('desc');
+            arrow.style.transform = '';
+            document.body.classList.add('sort-active');
+        } else {
+            btn.classList.add('active', 'desc');
+            document.body.classList.add('sort-active');
+        }
+
+        renderTimers();
+    }
+
+    function getSortedTimers() {
+        if (sortMode === 'none') return [...timers];
+
+        return [...timers].sort((a, b) => {
+            // Finished timers always go to end
+            const aDone = a.remainingSeconds === 0 && a.initialSeconds > 0 && !a.isActive;
+            const bDone = b.remainingSeconds === 0 && b.initialSeconds > 0 && !b.isActive;
+            if (aDone && !bDone) return 1;
+            if (!aDone && bDone) return -1;
+
+            // Unset timers (no initialSeconds) go after running/set ones
+            const aUnset = a.initialSeconds === 0;
+            const bUnset = b.initialSeconds === 0;
+            if (aUnset && !bUnset) return 1;
+            if (!aUnset && bUnset) return -1;
+
+            const diff = a.remainingSeconds - b.remainingSeconds;
+            return sortMode === 'asc' ? diff : -diff;
+        });
+    }
+
     function renderTimers() {
         const grid = document.getElementById('timer-grid');
+        grid.classList.add('sorting');
         grid.innerHTML = '';
-        timers.forEach((t, i) => {
-            const card = createCard(t);
+
+        const sorted = getSortedTimers();
+        // Map original index for rank badge
+        const rankMap = {};
+        sorted.forEach((t, i) => { rankMap[t.id] = i + 1; });
+
+        sorted.forEach((t, i) => {
+            const card = createCard(t, rankMap[t.id]);
             card.style.animationDelay = `${i * 0.04}s`;
             grid.appendChild(card);
         });
@@ -417,9 +572,11 @@
             <span class="add-label">新增計時</span>
         `;
         grid.appendChild(add);
+
+        setTimeout(() => grid.classList.remove('sorting'), 400);
     }
 
-    function createCard(timer) {
+    function createCard(timer, rank) {
         const mins = Math.floor(timer.remainingSeconds / 60);
         const secs = timer.remainingSeconds % 60;
         const isDone = timer.remainingSeconds === 0 && timer.initialSeconds > 0 && !timer.isActive;
@@ -430,6 +587,7 @@
         card.className = `timer-card${isRunning ? ' running' : ''}${isDone ? ' done' : ''}`;
 
         card.innerHTML = `
+            <div class="rank-badge">${rank}</div>
             <div class="card-top">
                 <div class="task-name-wrap">
                     <div class="running-dot"></div>
@@ -497,14 +655,25 @@
         renderTimers();
     }
 
+    // Tick interval — re-render grid when sort is active so order updates live
+    let lastSortRender = 0;
     setInterval(() => {
+        let needsRerender = false;
         timers.forEach(t => {
             if (t.isActive && t.remainingSeconds > 0) {
                 t.remainingSeconds--;
                 if (t.remainingSeconds === 0) t.isActive = false;
-                refreshCard(t);
+                if (sortMode === 'none') {
+                    refreshCard(t);
+                } else {
+                    needsRerender = true;
+                }
             }
         });
+        // Re-render at most every 1s when sorting active
+        if (needsRerender && sortMode !== 'none') {
+            renderTimers();
+        }
     }, 1000);
 
     renderTimers();
