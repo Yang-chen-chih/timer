@@ -90,7 +90,8 @@
             box-shadow: var(--shadow-card);
             transition: all 0.3s ease;
             position: relative;
-            display: flex; flex-direction: column; gap: 1.5rem;
+            display: flex; flex-direction: column; gap: 1rem;
+            cursor: pointer;
         }
         .timer-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
         .timer-card.running { border-color: var(--sage); background: var(--white); }
@@ -98,7 +99,13 @@
 
         @keyframes shake { from { transform: rotate(-1deg); } to { transform: rotate(1deg); } }
 
-        .card-header { display: flex; justify-content: space-between; align-items: center; }
+        .card-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            position: relative;
+            z-index: 5;
+        }
         .task-name { 
             font-family: 'Noto Sans TC', sans-serif; font-size: 1rem; font-weight: 700;
             border: none; background: transparent; outline: none; color: var(--ink-mid);
@@ -114,13 +121,22 @@
         }
         .delete-btn:hover { background: #e05252; color: white; }
 
-        .time-display { display: flex; justify-content: center; align-items: center; gap: 0.2rem; }
+        .time-display { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            gap: 0.2rem; 
+            pointer-events: none;
+        }
         .time-input {
             font-family: 'Varela Round', sans-serif; font-size: 3.2rem; font-weight: 900;
             width: 2.2ch; text-align: center; border: none; background: transparent; outline: none;
             color: var(--ink);
             border-radius: 0.5rem;
             transition: all 0.2s;
+            pointer-events: auto;
+            position: relative;
+            z-index: 5;
         }
         .time-input::-webkit-outer-spin-button, .time-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .time-input[type=number] { -moz-appearance: textfield; }
@@ -128,6 +144,21 @@
         .time-input:focus { background: var(--sage-pale); color: var(--ink) !important; }
         .timer-card.running .time-input { color: var(--sage); }
         .timer-card.done .time-input { color: var(--amber); }
+
+        .status-badge {
+            font-size: 0.7rem;
+            text-align: center;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            color: var(--ink-soft);
+            text-transform: uppercase;
+            padding: 0.4rem;
+            background: rgba(0,0,0,0.03);
+            border-radius: 2rem;
+            transition: 0.2s;
+        }
+        .timer-card:hover .status-badge { background: var(--sage-pale); color: var(--sage); }
+        .timer-card.running .status-badge { color: var(--sage); background: var(--sage-pale); }
 
         .add-card {
             border: 2px dashed var(--sage-light); background: transparent;
@@ -183,31 +214,24 @@
     const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let timers = [];
-    let isEditing = false; // 新增：判斷是否正在輸入
+    let isEditing = false; 
     const TABLE = 'timers';
 
-    // 播放提示音函數
     function playBeep() {
         try {
             const context = new (window.AudioContext || window.webkitAudioContext)();
             const oscillator = context.createOscillator();
             const gainNode = context.createGain();
-
             oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(880, context.currentTime); // A5 note
-            
+            oscillator.frequency.setValueAtTime(880, context.currentTime); 
             gainNode.gain.setValueAtTime(0, context.currentTime);
             gainNode.gain.linearRampToValueAtTime(0.5, context.currentTime + 0.1);
             gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 1);
-
             oscillator.connect(gainNode);
             gainNode.connect(context.destination);
-
             oscillator.start();
             oscillator.stop(context.currentTime + 1);
-        } catch (e) {
-            console.warn("Audio Context blocked or failed:", e);
-        }
+        } catch (e) { console.warn(e); }
     }
 
     function updateSyncStatus(status, message) {
@@ -225,7 +249,7 @@
             updateSyncStatus('error', '連線失敗');
             return;
         }
-        timers = data || [];
+        timers = (data || []).map(t => ({ ...t, is_active: false }));
         render();
         document.getElementById('loader').classList.add('hidden');
         updateSyncStatus('synced', '已同步');
@@ -246,7 +270,18 @@
         if (error) console.error(error);
     }
 
-    async function handleInputUpdate(id, type, value, start = false) {
+    async function toggleTimer(id) {
+        if (isEditing) return; 
+        const timer = timers.find(t => t.id === id);
+        if (!timer || timer.remaining_seconds <= 0) return;
+        
+        const newState = !timer.is_active;
+        timer.is_active = newState;
+        render();
+        await updateTimer(id, { is_active: newState });
+    }
+
+    async function handleInputUpdate(id, type, value, shouldStart = false) {
         const timer = timers.find(t => t.id === id);
         if (!timer) return;
 
@@ -258,41 +293,50 @@
 
         const totalSeconds = (mins * 60) + secs;
         
+        const idx = timers.findIndex(t => t.id === id);
+        if(idx !== -1) {
+            timers[idx].remaining_seconds = totalSeconds;
+            timers[idx].initial_seconds = totalSeconds;
+            // 如果應該啟動且有時間，則啟動
+            timers[idx].is_active = shouldStart && totalSeconds > 0;
+        }
+
         await updateTimer(id, { 
             remaining_seconds: totalSeconds, 
             initial_seconds: totalSeconds,
-            is_active: start && totalSeconds > 0
+            is_active: timers[idx].is_active
         });
-        isEditing = false; // 更新完成，解鎖
+        
+        isEditing = false; 
         render();
     }
 
-    function handleKeyDown(e) {
+    function handleKeyDown(e, id, type) {
         if (e.key === 'Enter') {
-            e.target.blur(); 
+            e.preventDefault();
+            const value = e.target.value;
+            e.target.blur(); // 觸發 blur 以儲存狀態
+            // 特別處理：Enter 鍵後直接啟動
+            handleInputUpdate(id, type, value, true);
         }
     }
 
-    // 處理即時同步
     db.channel('public:timers')
       .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, (payload) => {
           if (payload.eventType === 'INSERT') {
-              timers.push(payload.new);
+              timers.push({ ...payload.new, is_active: false });
           } else if (payload.eventType === 'UPDATE') {
               const idx = timers.findIndex(t => t.id === payload.new.id);
-              if (idx !== -1) timers[idx] = payload.new;
+              if (idx !== -1) {
+                  if (!isEditing) timers[idx] = { ...payload.new, is_active: payload.new.is_active };
+              }
           } else if (payload.eventType === 'DELETE') {
               timers = timers.filter(t => t.id !== payload.old.id);
           }
-          
-          // 只有在非編輯狀態下才重新渲染
-          if (!isEditing) {
-              render();
-          }
+          if (!isEditing) render();
       })
       .subscribe();
 
-    // 計時器邏輯
     setInterval(() => {
         let changed = false;
         timers.forEach(t => {
@@ -306,26 +350,27 @@
                 changed = true;
             }
         });
-        
-        // 只有在非編輯狀態且數據有變動時才渲染
-        if (changed && !isEditing) {
-            render();
-        }
+        if (changed && !isEditing) render();
     }, 1000);
 
     function render() {
-        if (isEditing) return; // 鎖定狀態下不准更動 DOM
-
+        if (isEditing) return; 
         const grid = document.getElementById('timer-grid');
         if (!grid) return;
         
         const sortedTimers = [...timers].sort((a, b) => a.remaining_seconds - b.remaining_seconds);
-        
         grid.innerHTML = '';
+        
         sortedTimers.forEach(t => {
             const card = document.createElement('div');
             const isDone = t.remaining_seconds === 0 && !t.is_active && t.initial_seconds > 0;
             card.className = `timer-card ${t.is_active ? 'running' : ''} ${isDone ? 'done' : ''}`;
+            
+            card.onclick = (e) => {
+                if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
+                    toggleTimer(t.id);
+                }
+            };
             
             const mins = Math.floor(t.remaining_seconds / 60);
             const secs = t.remaining_seconds % 60;
@@ -334,22 +379,23 @@
                 <div class="card-header">
                     <input class="task-name" value="${t.name}" 
                            onfocus="isEditing=true" 
-                           onblur="isEditing=false; updateTimer('${t.id}', {name: this.value})">
+                           onblur="setTimeout(()=>isEditing=false, 100); updateTimer('${t.id}', {name: this.value})">
                     <button class="delete-btn" onclick="deleteTimer('${t.id}')">✕</button>
                 </div>
                 <div class="time-display">
                     <input type="number" class="time-input" value="${String(mins).padStart(2, '0')}" 
-                           onfocus="isEditing=true; updateTimer('${t.id}', {is_active: false}); this.select();"
-                           onkeydown="handleKeyDown(event)"
-                           onchange="handleInputUpdate('${t.id}', 'min', this.value, true)"
-                           onblur="setTimeout(()=>isEditing=false, 100)">
+                           onfocus="isEditing=true; this.select();"
+                           onkeydown="handleKeyDown(event, '${t.id}', 'min')"
+                           onchange="handleInputUpdate('${t.id}', 'min', this.value)"
+                           onblur="setTimeout(()=>isEditing=false, 150)">
                     <span style="font-size: 1.5rem; opacity: 0.3;">:</span>
                     <input type="number" class="time-input" value="${String(secs).padStart(2, '0')}" 
-                           onfocus="isEditing=true; updateTimer('${t.id}', {is_active: false}); this.select();"
-                           onkeydown="handleKeyDown(event)"
-                           onchange="handleInputUpdate('${t.id}', 'sec', this.value, true)"
-                           onblur="setTimeout(()=>isEditing=false, 100)">
+                           onfocus="isEditing=true; this.select();"
+                           onkeydown="handleKeyDown(event, '${t.id}', 'sec')"
+                           onchange="handleInputUpdate('${t.id}', 'sec', this.value)"
+                           onblur="setTimeout(()=>isEditing=false, 150)">
                 </div>
+                <div class="status-badge">${t.is_active ? '倒數中' : (isDone ? '已結束' : '點擊啟動')}</div>
             `;
             grid.appendChild(card);
         });
