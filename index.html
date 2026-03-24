@@ -132,7 +132,8 @@
         .add-card {
             border: 2px dashed var(--sage-light); background: transparent;
             border-radius: 1.25rem; min-height: 180px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            display: grid; place-items: center;
+            align-content: center;
             cursor: pointer; gap: 0.8rem; transition: 0.2s;
         }
         .add-card:hover { background: var(--sage-pale); border-style: solid; }
@@ -182,6 +183,7 @@
     const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let timers = [];
+    let isEditing = false; // 新增：判斷是否正在輸入
     const TABLE = 'timers';
 
     // 播放提示音函數
@@ -230,7 +232,6 @@
     }
 
     async function addTimer() {
-        // 預設給一個極大的剩餘時間，讓新卡片暫時排在最後，直到使用者輸入
         const { error } = await db.from(TABLE).insert([{ name: '新任務', initial_seconds: 0, remaining_seconds: 0, is_active: false }]);
         if (error) console.error(error);
     }
@@ -262,6 +263,8 @@
             initial_seconds: totalSeconds,
             is_active: start && totalSeconds > 0
         });
+        isEditing = false; // 更新完成，解鎖
+        render();
     }
 
     function handleKeyDown(e) {
@@ -270,6 +273,7 @@
         }
     }
 
+    // 處理即時同步
     db.channel('public:timers')
       .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, (payload) => {
           if (payload.eventType === 'INSERT') {
@@ -280,12 +284,15 @@
           } else if (payload.eventType === 'DELETE') {
               timers = timers.filter(t => t.id !== payload.old.id);
           }
-          if (!document.activeElement || (!document.activeElement.classList.contains('time-input') && !document.activeElement.classList.contains('task-name'))) {
+          
+          // 只有在非編輯狀態下才重新渲染
+          if (!isEditing) {
               render();
           }
       })
       .subscribe();
 
+    // 計時器邏輯
     setInterval(() => {
         let changed = false;
         timers.forEach(t => {
@@ -293,27 +300,28 @@
                 t.remaining_seconds--;
                 if (t.remaining_seconds === 0) {
                     t.is_active = false;
-                    playBeep(); // 時間到，播放提示音
+                    playBeep(); 
                     updateTimer(t.id, { remaining_seconds: 0, is_active: false });
                 }
                 changed = true;
             }
         });
-        // 每秒檢查是否需要重新渲染（包括排序）
-        if (changed && (!document.activeElement || !document.activeElement.classList.contains('time-input'))) {
+        
+        // 只有在非編輯狀態且數據有變動時才渲染
+        if (changed && !isEditing) {
             render();
         }
     }, 1000);
 
     function render() {
+        if (isEditing) return; // 鎖定狀態下不准更動 DOM
+
         const grid = document.getElementById('timer-grid');
         if (!grid) return;
-        grid.innerHTML = '';
-
-        // 根據剩餘時間排序：時間越少排越前面
-        // 已經結束的 (0秒) 會排在最上方
+        
         const sortedTimers = [...timers].sort((a, b) => a.remaining_seconds - b.remaining_seconds);
-
+        
+        grid.innerHTML = '';
         sortedTimers.forEach(t => {
             const card = document.createElement('div');
             const isDone = t.remaining_seconds === 0 && !t.is_active && t.initial_seconds > 0;
@@ -324,19 +332,23 @@
 
             card.innerHTML = `
                 <div class="card-header">
-                    <input class="task-name" value="${t.name}" onchange="updateTimer('${t.id}', {name: this.value})">
+                    <input class="task-name" value="${t.name}" 
+                           onfocus="isEditing=true" 
+                           onblur="isEditing=false; updateTimer('${t.id}', {name: this.value})">
                     <button class="delete-btn" onclick="deleteTimer('${t.id}')">✕</button>
                 </div>
                 <div class="time-display">
                     <input type="number" class="time-input" value="${String(mins).padStart(2, '0')}" 
-                           onfocus="updateTimer('${t.id}', {is_active: false}); this.select();"
+                           onfocus="isEditing=true; updateTimer('${t.id}', {is_active: false}); this.select();"
                            onkeydown="handleKeyDown(event)"
-                           onchange="handleInputUpdate('${t.id}', 'min', this.value, true)">
+                           onchange="handleInputUpdate('${t.id}', 'min', this.value, true)"
+                           onblur="setTimeout(()=>isEditing=false, 100)">
                     <span style="font-size: 1.5rem; opacity: 0.3;">:</span>
                     <input type="number" class="time-input" value="${String(secs).padStart(2, '0')}" 
-                           onfocus="updateTimer('${t.id}', {is_active: false}); this.select();"
+                           onfocus="isEditing=true; updateTimer('${t.id}', {is_active: false}); this.select();"
                            onkeydown="handleKeyDown(event)"
-                           onchange="handleInputUpdate('${t.id}', 'sec', this.value, true)">
+                           onchange="handleInputUpdate('${t.id}', 'sec', this.value, true)"
+                           onblur="setTimeout(()=>isEditing=false, 100)">
                 </div>
             `;
             grid.appendChild(card);
