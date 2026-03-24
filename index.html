@@ -184,6 +184,30 @@
     let timers = [];
     const TABLE = 'timers';
 
+    // 播放提示音函數
+    function playBeep() {
+        try {
+            const context = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = context.createOscillator();
+            const gainNode = context.createGain();
+
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(880, context.currentTime); // A5 note
+            
+            gainNode.gain.setValueAtTime(0, context.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.5, context.currentTime + 0.1);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 1);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(context.destination);
+
+            oscillator.start();
+            oscillator.stop(context.currentTime + 1);
+        } catch (e) {
+            console.warn("Audio Context blocked or failed:", e);
+        }
+    }
+
     function updateSyncStatus(status, message) {
         const dot = document.getElementById('sync-dot');
         const label = document.getElementById('sync-label');
@@ -206,6 +230,7 @@
     }
 
     async function addTimer() {
+        // 預設給一個極大的剩餘時間，讓新卡片暫時排在最後，直到使用者輸入
         const { error } = await db.from(TABLE).insert([{ name: '新任務', initial_seconds: 0, remaining_seconds: 0, is_active: false }]);
         if (error) console.error(error);
     }
@@ -239,10 +264,9 @@
         });
     }
 
-    // 監聽 Enter 鍵
     function handleKeyDown(e) {
         if (e.key === 'Enter') {
-            e.target.blur(); // 觸發失去焦點，進而觸發 onchange
+            e.target.blur(); 
         }
     }
 
@@ -256,7 +280,7 @@
           } else if (payload.eventType === 'DELETE') {
               timers = timers.filter(t => t.id !== payload.old.id);
           }
-          if (!document.activeElement || !document.activeElement.classList.contains('time-input')) {
+          if (!document.activeElement || (!document.activeElement.classList.contains('time-input') && !document.activeElement.classList.contains('task-name'))) {
               render();
           }
       })
@@ -269,11 +293,13 @@
                 t.remaining_seconds--;
                 if (t.remaining_seconds === 0) {
                     t.is_active = false;
+                    playBeep(); // 時間到，播放提示音
                     updateTimer(t.id, { remaining_seconds: 0, is_active: false });
                 }
                 changed = true;
             }
         });
+        // 每秒檢查是否需要重新渲染（包括排序）
         if (changed && (!document.activeElement || !document.activeElement.classList.contains('time-input'))) {
             render();
         }
@@ -284,7 +310,11 @@
         if (!grid) return;
         grid.innerHTML = '';
 
-        timers.forEach(t => {
+        // 根據剩餘時間排序：時間越少排越前面
+        // 已經結束的 (0秒) 會排在最上方
+        const sortedTimers = [...timers].sort((a, b) => a.remaining_seconds - b.remaining_seconds);
+
+        sortedTimers.forEach(t => {
             const card = document.createElement('div');
             const isDone = t.remaining_seconds === 0 && !t.is_active && t.initial_seconds > 0;
             card.className = `timer-card ${t.is_active ? 'running' : ''} ${isDone ? 'done' : ''}`;
