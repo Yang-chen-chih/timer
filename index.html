@@ -4,273 +4,509 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>計時器</title>
-    <link rel="icon" href="下載4.jpg" type="image/jpg">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Varela+Round&family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700;800&family=Noto+Sans+TC:wght@400;700;900&display=swap');
-        
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --sage: #7a9e5a;
+            --sage-light: #b5d18c;
+            --sage-pale: #e8f3db;
+            --ink: #1c2712;
+            --ink-mid: #3d4f2a;
+            --ink-soft: #6b7f57;
+            --parchment: #f5f9ee;
+            --cream: #fdfef9;
+            --amber: #d4830a;
+            --amber-light: #fce4b0;
+            --white: #ffffff;
+            --card-border: rgba(122, 158, 90, 0.18);
+            --shadow-card: 0 2px 20px rgba(28, 39, 18, 0.06), 0 1px 4px rgba(28, 39, 18, 0.04);
+            --shadow-hover: 0 8px 40px rgba(28, 39, 18, 0.10), 0 2px 8px rgba(28, 39, 18, 0.06);
+        }
+
         body {
             font-family: 'Noto Sans TC', sans-serif;
-            background-color: #f7fcf2;
-            color: #2d3a1f;
-        }
-        
-        .font-mono {
-            font-family: 'JetBrains Mono', monospace;
+            background: var(--parchment);
+            color: var(--ink);
+            min-height: 100vh;
+            overflow-x: hidden;
         }
 
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
+        /* === BACKGROUND TEXTURE === */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                radial-gradient(ellipse 80% 60% at 15% 20%, rgba(181, 209, 140, 0.18) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 80% at 85% 75%, rgba(122, 158, 90, 0.10) 0%, transparent 55%),
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
         }
 
-        .glass-card {
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+        /* === HEADER === */
+        header {
+            position: relative;
+            z-index: 10;
+            padding: 2.5rem 3rem 0;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 2rem;
         }
 
-        @keyframes pulse-orange {
-            0%, 100% { border-color: #ff9f43; background-color: #fff9f2; box-shadow: 0 4px 6px -1px rgba(255, 159, 67, 0.1); }
-            50% { border-color: #ffc285; background-color: #fffdfa; box-shadow: 0 10px 15px -3px rgba(255, 159, 67, 0.15); }
+        .brand {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
         }
 
-        .animate-done {
-            animation: pulse-orange 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        .brand-eyebrow {
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.6rem;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--sage);
+            opacity: 0.8;
+        }
+
+        .brand-title {
+            font-family: 'Nunito', sans-serif;
+            font-size: 2.6rem;
+            font-weight: 900;
+            line-height: 1;
+            color: var(--ink);
+            letter-spacing: -0.02em;
+        }
+
+        .brand-title span {
+            color: var(--sage);
+        }
+
+        .header-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding-bottom: 0.4rem;
+        }
+
+        .live-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--sage);
+            animation: livepulse 2s ease infinite;
+        }
+
+        @keyframes livepulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
+        }
+
+        .live-label {
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.6rem;
+            color: var(--ink-soft);
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+        }
+
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, var(--sage-light) 0%, transparent 100%);
+            margin: 1.5rem 3rem 0;
+            opacity: 0.4;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* === GRID === */
+        .grid-wrap {
+            position: relative;
+            z-index: 10;
+            padding: 2rem 3rem 3rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1rem;
+        }
+
+        /* === TIMER CARD === */
+        .timer-card {
+            position: relative;
+            background: var(--cream);
+            border: 1px solid var(--card-border);
+            border-radius: 1.25rem;
+            padding: 1.25rem 1.4rem 1rem;
+            box-shadow: var(--shadow-card);
+            transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            overflow: hidden;
+            min-height: 130px;
+        }
+
+        .timer-card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+
+        .timer-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--sage-light), var(--sage));
+            border-radius: 1.25rem 1.25rem 0 0;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .timer-card.running::before { opacity: 1; }
+
+        .timer-card.done {
+            border-color: rgba(212, 131, 10, 0.3);
+            animation: donePulse 2.2s ease infinite;
+        }
+
+        .timer-card.done::before {
+            background: linear-gradient(90deg, var(--amber-light), var(--amber));
+            opacity: 1;
+        }
+
+        @keyframes donePulse {
+            0%, 100% { box-shadow: 0 2px 20px rgba(212, 131, 10, 0.08); }
+            50% { box-shadow: 0 6px 30px rgba(212, 131, 10, 0.2); }
+        }
+
+        /* card header row */
+        .card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+
+        .task-name-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            overflow: hidden;
+            flex: 1;
+        }
+
+        .running-dot {
+            flex-shrink: 0;
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: var(--sage);
+            animation: livepulse 1s ease infinite;
+            display: none;
+        }
+
+        .timer-card.running .running-dot { display: block; }
+
+        .task-name {
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--ink-mid);
+            background: transparent;
+            border: none;
+            outline: none;
+            width: 100%;
+            letter-spacing: 0.03em;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+            padding: 0;
+        }
+
+        .task-name:focus {
+            border-bottom-color: var(--sage-light);
+        }
+
+        .delete-btn {
+            flex-shrink: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #ccc;
+            font-size: 0.75rem;
+            width: 20px; height: 20px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 50%;
+            transition: color 0.2s, background 0.2s;
+        }
+
+        .delete-btn:hover { color: #e05252; background: #fff0f0; }
+
+        /* time display */
+        .time-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            flex: 1;
+        }
+
+        .time-input {
+            font-family: 'Varela Round', sans-serif;
+            font-size: 2.6rem;
+            font-weight: 900;
+            width: 2.2ch;
+            text-align: center;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--ink);
+            line-height: 1;
+            transition: color 0.3s;
+            -moz-appearance: textfield;
+        }
+
+        .time-input::-webkit-inner-spin-button,
+        .time-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+        .time-input:focus { color: var(--sage); }
+        .timer-card.running .time-input { color: var(--sage); }
+        .timer-card.done .time-input { color: var(--amber); }
+
+        .colon {
+            font-family: 'Varela Round', sans-serif;
+            font-size: 2rem;
+            font-weight: 300;
+            color: var(--sage-light);
+            line-height: 1;
+            margin-bottom: 4px;
+            opacity: 0.6;
+            transition: opacity 0.5s;
+        }
+
+        .timer-card.running .colon {
+            animation: colonBlink 1s step-start infinite;
+        }
+
+        @keyframes colonBlink {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 0.15; }
+        }
+
+        /* status */
+        .status-row {
+            text-align: center;
+        }
+
+        .status-text {
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.55rem;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: #bbc9a8;
+            transition: color 0.3s;
+        }
+
+        .timer-card.running .status-text { color: var(--sage); }
+        .timer-card.done .status-text { color: var(--amber); }
+
+        /* === ADD CARD === */
+        .add-card {
+            min-height: 130px;
+            background: transparent;
+            border: 1.5px dashed rgba(122, 158, 90, 0.28);
+            border-radius: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s, transform 0.15s;
+        }
+
+        .add-card:hover {
+            border-color: var(--sage);
+            background: rgba(122, 158, 90, 0.04);
+            transform: translateY(-2px);
+        }
+
+        .add-card:active { transform: scale(0.97); }
+
+        .add-icon {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: var(--sage-pale);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--sage);
+            font-size: 1.2rem;
+            transition: background 0.2s;
+        }
+
+        .add-card:hover .add-icon { background: var(--sage); color: #fff; }
+
+        .add-label {
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.6rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--ink-soft);
+            opacity: 0.6;
+        }
+
+        /* === RESPONSIVE === */
+        @media (max-width: 640px) {
+            header { padding: 1.5rem 1.25rem 0; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+            .divider { margin: 1rem 1.25rem 0; }
+            .grid-wrap { padding: 1.25rem 1.25rem 2rem; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+            .brand-title { font-size: 2rem; }
+            .time-input { font-size: 2.1rem; }
+        }
+
+        /* === ENTRY ANIMATION === */
+        .timer-card, .add-card {
+            animation: cardIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(10px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
         }
     </style>
 </head>
-<body class="min-h-screen">
+<body>
 
-    <!-- 頂部生機 Banner -->
-    <div class="relative h-32 md:h-40 overflow-hidden border-b border-lime-100">
-        <div id="loading-placeholder" class="absolute inset-0 flex items-center justify-center bg-lime-50 animate-pulse">
-            <i data-lucide="leaf" class="w-8 h-8 text-lime-200 animate-spin"></i>
-        </div>
-        <img id="header-img" src="" alt="Nature Banner" class="w-full h-full object-cover opacity-80 hidden">
-        
-        <div class="absolute inset-0 bg-gradient-to-t from-[#f7fcf2] to-transparent"></div>
-        
-        <div class="absolute bottom-4 left-6 md:left-12 flex items-center gap-3">
-            <div class="bg-[#89b449] p-2 rounded-xl shadow-lg shadow-lime-200/40">
-                <i data-lucide="hourglass" class="w-6 h-6 text-white"></i>
-            </div>
-            <div>
-                <h1 class="text-2xl font-black tracking-tight">計時器</h1>
-                <p class="text-[10px] text-[#89b449] font-bold tracking-[0.15em] uppercase italic">Vitality & Flow</p>
-            </div>
-        </div>
+<header>
+    <div class="brand">
+        <span class="brand-eyebrow">Task Flow · 任務流</span>
+        <h1 class="brand-title">計時<span>器</span></h1>
     </div>
-
-    <!-- 主要內容區 -->
-    <div class="max-w-7xl mx-auto p-4 md:p-8 -mt-4 relative z-10">
-        <div id="timer-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            <!-- 計時器卡片 -->
-        </div>
+    <div class="header-meta">
+        <div class="live-dot"></div>
+        <span class="live-label">即時計時</span>
     </div>
+</header>
 
-    <script>
-        const apiKey = ""; 
-        let timers = [
-            { id: Date.now(), name: '工作專注', initialSeconds: 0, remainingSeconds: 0, isActive: false }
-        ];
+<div class="divider"></div>
 
-        function initIcons() {
-            lucide.createIcons();
-        }
+<div class="grid-wrap" id="timer-grid"></div>
 
-        async function generateBackground() {
-            const headerImg = document.getElementById('header-img');
-            const placeholder = document.getElementById('loading-placeholder');
-            try {
-                const prompt = "A high-quality, minimalist, wide-angle banner of a fresh green forest with morning sunlight filtering through leaves, soft bokeh, serene and vital nature atmosphere, pastel green and white tones.";
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        instances: [{ prompt: prompt }],
-                        parameters: { sampleCount: 1 }
-                    })
-                });
-                const result = await response.json();
-                if (result.predictions && result.predictions[0]) {
-                    headerImg.src = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
-                    headerImg.classList.remove('hidden');
-                    placeholder.classList.add('hidden');
-                }
-            } catch (error) {
-                placeholder.innerHTML = '<span class="text-lime-400 font-bold text-xs uppercase tracking-widest">Nature Mode</span>';
+<script>
+    let timers = [
+        { id: Date.now(), name: '輸入名稱', initialSeconds: 0, remainingSeconds: 0, isActive: false }
+    ];
+
+    function renderTimers() {
+        const grid = document.getElementById('timer-grid');
+        grid.innerHTML = '';
+        timers.forEach((t, i) => {
+            const card = createCard(t);
+            card.style.animationDelay = `${i * 0.04}s`;
+            grid.appendChild(card);
+        });
+
+        // Add card
+        const add = document.createElement('button');
+        add.className = 'add-card';
+        add.style.animationDelay = `${timers.length * 0.04}s`;
+        add.onclick = addTimer;
+        add.innerHTML = `
+            <div class="add-icon">＋</div>
+            <span class="add-label">新增計時</span>
+        `;
+        grid.appendChild(add);
+    }
+
+    function createCard(timer) {
+        const mins = Math.floor(timer.remainingSeconds / 60);
+        const secs = timer.remainingSeconds % 60;
+        const isDone = timer.remainingSeconds === 0 && timer.initialSeconds > 0 && !timer.isActive;
+        const isRunning = timer.isActive && timer.remainingSeconds > 0;
+
+        const card = document.createElement('div');
+        card.id = `card-${timer.id}`;
+        card.className = `timer-card${isRunning ? ' running' : ''}${isDone ? ' done' : ''}`;
+
+        card.innerHTML = `
+            <div class="card-top">
+                <div class="task-name-wrap">
+                    <div class="running-dot"></div>
+                    <input class="task-name" type="text" value="${timer.name}" 
+                        oninput="updateField(${timer.id}, 'name', this.value)">
+                </div>
+                <button class="delete-btn" onclick="deleteTimer(${timer.id})" title="刪除">✕</button>
+            </div>
+            <div class="time-row">
+                <input class="time-input" type="number" value="${pad(mins)}" placeholder="00"
+                    onfocus="this.select()" oninput="updateTime(${timer.id}, 'mins', this.value)">
+                <span class="colon">:</span>
+                <input class="time-input" type="number" value="${pad(secs)}" placeholder="00"
+                    onfocus="this.select()" oninput="updateTime(${timer.id}, 'secs', this.value)">
+            </div>
+            <div class="status-row">
+                <span class="status-text">${isRunning ? 'Running' : isDone ? 'Finished' : 'Set Time'}</span>
+            </div>
+        `;
+        return card;
+    }
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function updateField(id, field, value) {
+        const t = timers.find(t => t.id === id);
+        if (t) t[field] = value;
+    }
+
+    function updateTime(id, field, value) {
+        const t = timers.find(t => t.id === id);
+        if (!t) return;
+        const n = Math.max(0, parseInt(value) || 0);
+        const m = Math.floor(t.remainingSeconds / 60);
+        const s = t.remainingSeconds % 60;
+        t.remainingSeconds = field === 'mins' ? n * 60 + s : m * 60 + Math.min(59, n);
+        t.initialSeconds = t.remainingSeconds;
+        t.isActive = t.remainingSeconds > 0;
+        refreshCard(t);
+    }
+
+    function refreshCard(timer) {
+        const card = document.getElementById(`card-${timer.id}`);
+        if (!card) return;
+        const isDone = timer.remainingSeconds === 0 && timer.initialSeconds > 0 && !timer.isActive;
+        const isRunning = timer.isActive && timer.remainingSeconds > 0;
+
+        card.className = `timer-card${isRunning ? ' running' : ''}${isDone ? ' done' : ''}`;
+
+        const [mInput, sInput] = card.querySelectorAll('.time-input');
+        mInput.value = pad(Math.floor(timer.remainingSeconds / 60));
+        sInput.value = pad(timer.remainingSeconds % 60);
+
+        card.querySelector('.status-text').textContent =
+            isRunning ? 'Running' : isDone ? 'Finished' : 'Set Time';
+    }
+
+    function addTimer() {
+        timers.push({ id: Date.now(), name: `輸入名稱`, initialSeconds: 0, remainingSeconds: 0, isActive: false });
+        renderTimers();
+    }
+
+    function deleteTimer(id) {
+        timers = timers.filter(t => t.id !== id);
+        renderTimers();
+    }
+
+    setInterval(() => {
+        timers.forEach(t => {
+            if (t.isActive && t.remainingSeconds > 0) {
+                t.remainingSeconds--;
+                if (t.remainingSeconds === 0) t.isActive = false;
+                refreshCard(t);
             }
-        }
+        });
+    }, 1000);
 
-        // 核心渲染：只在列表結構改變時調用
-        function renderTimers() {
-            const grid = document.getElementById('timer-grid');
-            grid.innerHTML = '';
-
-            // 這裡不自動排序，避免輸入時卡片跳動，若需要排序可另設按鈕
-            timers.forEach(timer => {
-                const card = createTimerCard(timer);
-                grid.appendChild(card);
-            });
-
-            // 新增按鈕
-            const addCard = document.createElement('button');
-            addCard.className = "group flex items-center justify-center gap-3 bg-white/40 backdrop-blur-sm rounded-[1.5rem] border border-dashed border-[#c5e1a5] h-[110px] transition-all hover:border-[#89b449] hover:bg-white/60 active:scale-95 shadow-sm";
-            addCard.onclick = addNewTimer;
-            addCard.innerHTML = `
-                <div class="bg-white p-2 rounded-xl shadow-sm group-hover:bg-[#89b449] transition-all relative">
-                    <i data-lucide="hourglass" class="w-4 h-4 text-[#89b449] group-hover:text-white"></i>
-                </div>
-                <div class="text-left">
-                    <span class="block text-sm font-black text-[#89b449]">新增計時</span>
-                    <span class="block text-[8px] font-bold text-[#89b449]/50 uppercase tracking-widest">Add Task</span>
-                </div>
-            `;
-            grid.appendChild(addCard);
-            initIcons();
-        }
-
-        function createTimerCard(timer) {
-            const mins = Math.floor(timer.remainingSeconds / 60);
-            const secs = timer.remainingSeconds % 60;
-            const isDone = timer.remainingSeconds === 0 && timer.initialSeconds > 0;
-            const isRunning = timer.isActive && timer.remainingSeconds > 0;
-
-            const card = document.createElement('div');
-            card.id = `timer-card-${timer.id}`;
-            card.className = `group glass-card rounded-[1.5rem] border transition-all duration-300 flex flex-col h-[110px] px-5 py-3 relative overflow-hidden ${
-                isDone ? 'animate-done border-orange-300' : isRunning ? 'border-[#89b449]/40 bg-white/95 shadow-md' : 'border-white bg-white/75 shadow-sm hover:shadow-lg hover:border-[#89b449]/30'
-            }`;
-
-            card.innerHTML = `
-                <div class="absolute -right-2 -top-2 w-10 h-10 rounded-full bg-stone-50/50 status-bg"></div>
-                
-                <div class="flex justify-between items-center relative z-10 mb-1">
-                    <div class="flex items-center gap-1.5 overflow-hidden">
-                        <span class="zap-icon">${isRunning ? '<i data-lucide="zap" class="w-2.5 h-2.5 text-yellow-500 animate-pulse"></i>' : ''}</span>
-                        <input type="text" value="${timer.name}" 
-                            class="font-bold text-[11px] text-[#4a5d33] bg-transparent outline-none w-full truncate border-b border-transparent focus:border-[#89b449]/50"
-                            oninput="updateTimerData(${timer.id}, 'name', this.value)">
-                    </div>
-                    <button onclick="deleteTimer(${timer.id})" class="text-stone-300 hover:text-[#ff6b6b] p-0.5 transition-colors">
-                        <i data-lucide="trash-2" class="w-3 h-3"></i>
-                    </button>
-                </div>
-
-                <div class="flex-1 flex items-center justify-center gap-0.5 relative z-10">
-                    <input type="number" value="${mins}" placeholder="00"
-                        class="mins-input w-10 text-3xl font-mono font-black text-center bg-transparent outline-none transition-colors ${isRunning ? 'text-[#89b449]' : isDone ? 'text-[#ff9f43]' : 'text-[#2d3a1f]'}"
-                        onfocus="this.select()" oninput="updateTimerTime(${timer.id}, 'mins', this.value)">
-                    <span class="text-xl font-bold colon ${isRunning ? 'text-[#89b449]/30' : 'text-stone-200'}">:</span>
-                    <input type="number" value="${secs}" placeholder="00"
-                        class="secs-input w-10 text-3xl font-mono font-black text-center bg-transparent outline-none transition-colors ${isRunning ? 'text-[#89b449]' : isDone ? 'text-[#ff9f43]' : 'text-[#2d3a1f]'}"
-                        onfocus="this.select()" oninput="updateTimerTime(${timer.id}, 'secs', this.value)">
-                </div>
-
-                <div class="text-center relative z-10 mt-0.5">
-                    <p class="status-text text-[8px] font-black uppercase tracking-[0.15em] ${isRunning ? 'text-[#89b449]' : isDone ? 'text-[#ff9f43]' : 'text-stone-400'}">
-                        ${isRunning ? "Running" : isDone ? "Finish!" : "Set Time"}
-                    </p>
-                </div>
-            `;
-            return card;
-        }
-
-        // 即時更新數據，不重繪 DOM
-        function updateTimerData(id, field, value) {
-            const timer = timers.find(t => t.id === id);
-            if (timer) timer[field] = value;
-        }
-
-        function updateTimerTime(id, field, value) {
-            const timer = timers.find(t => t.id === id);
-            if (!timer) return;
-
-            let numValue = Math.max(0, parseInt(value) || 0);
-            const currentMins = Math.floor(timer.remainingSeconds / 60);
-            const currentSecs = timer.remainingSeconds % 60;
-
-            if (field === 'mins') {
-                timer.remainingSeconds = numValue * 60 + currentSecs;
-            } else {
-                timer.remainingSeconds = currentMins * 60 + Math.min(59, numValue);
-            }
-            timer.initialSeconds = timer.remainingSeconds;
-            timer.isActive = timer.remainingSeconds > 0;
-            
-            // 手動更新該卡片的狀態類別，而不重新渲染整個 grid
-            updateCardVisuals(timer);
-        }
-
-        function updateCardVisuals(timer) {
-            const card = document.getElementById(`timer-card-${timer.id}`);
-            if (!card) return;
-
-            const isDone = timer.remainingSeconds === 0 && timer.initialSeconds > 0;
-            const isRunning = timer.isActive && timer.remainingSeconds > 0;
-
-            // 更新顏色與動畫
-            card.className = `group glass-card rounded-[1.5rem] border transition-all duration-300 flex flex-col h-[110px] px-5 py-3 relative overflow-hidden ${
-                isDone ? 'animate-done border-orange-300' : isRunning ? 'border-[#89b449]/40 bg-white/95 shadow-md' : 'border-white bg-white/75 shadow-sm hover:shadow-lg hover:border-[#89b449]/30'
-            }`;
-
-            // 更新文字與圖示
-            const minsInput = card.querySelector('.mins-input');
-            const secsInput = card.querySelector('.secs-input');
-            const statusText = card.querySelector('.status-text');
-            const zapIcon = card.querySelector('.zap-icon');
-            const colon = card.querySelector('.colon');
-
-            minsInput.value = Math.floor(timer.remainingSeconds / 60);
-            secsInput.value = timer.remainingSeconds % 60;
-            
-            const colorClass = isRunning ? 'text-[#89b449]' : isDone ? 'text-[#ff9f43]' : 'text-[#2d3a1f]';
-            minsInput.className = `mins-input w-10 text-3xl font-mono font-black text-center bg-transparent outline-none transition-colors ${colorClass}`;
-            secsInput.className = `secs-input w-10 text-3xl font-mono font-black text-center bg-transparent outline-none transition-colors ${colorClass}`;
-            
-            statusText.innerText = isRunning ? "Running" : isDone ? "Finish!" : "Set Time";
-            statusText.className = `status-text text-[8px] font-black uppercase tracking-[0.15em] ${isRunning ? 'text-[#89b449]' : isDone ? 'text-[#ff9f43]' : 'text-stone-400'}`;
-            
-            colon.className = `text-xl font-bold colon ${isRunning ? 'text-[#89b449]/30' : 'text-stone-200'}`;
-            
-            if (isRunning && zapIcon.innerHTML === '') {
-                zapIcon.innerHTML = '<i data-lucide="zap" class="w-2.5 h-2.5 text-yellow-500 animate-pulse"></i>';
-                lucide.createIcons();
-            } else if (!isRunning) {
-                zapIcon.innerHTML = '';
-            }
-        }
-
-        function addNewTimer() {
-            timers.push({ id: Date.now(), name: `計畫 ${timers.length + 1}`, initialSeconds: 0, remainingSeconds: 0, isActive: false });
-            renderTimers();
-        }
-
-        function deleteTimer(id) {
-            timers = timers.filter(t => t.id !== id);
-            renderTimers();
-        }
-
-        // 計時器每秒更新
-        setInterval(() => {
-            timers.forEach(timer => {
-                if (timer.isActive && timer.remainingSeconds > 0) {
-                    timer.remainingSeconds -= 1;
-                    updateCardVisuals(timer);
-                } else if (timer.isActive && timer.remainingSeconds <= 0) {
-                    timer.remainingSeconds = 0;
-                    timer.isActive = false;
-                    updateCardVisuals(timer);
-                }
-            });
-        }, 1000);
-
-        window.onload = () => {
-            generateBackground();
-            renderTimers();
-        };
-    </script>
+    renderTimers();
+</script>
 </body>
 </html>
