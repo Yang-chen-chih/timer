@@ -32,8 +32,8 @@
         }
 
         @keyframes pulse-orange {
-            0%, 100% { border-color: #ff9f43; background-color: #fff9f2; box-shadow: 0 10px 15px -3px rgba(255, 159, 67, 0.2); }
-            50% { border-color: #ffc285; background-color: #fffdfa; box-shadow: 0 20px 25px -5px rgba(255, 159, 67, 0.1); }
+            0%, 100% { border-color: #ff9f43; background-color: #fff9f2; box-shadow: 0 4px 6px -1px rgba(255, 159, 67, 0.1); }
+            50% { border-color: #ffc285; background-color: #fffdfa; box-shadow: 0 10px 15px -3px rgba(255, 159, 67, 0.15); }
         }
 
         .animate-done {
@@ -44,48 +44,45 @@
 <body class="min-h-screen">
 
     <!-- 頂部生機 Banner -->
-    <div class="relative h-48 md:h-64 overflow-hidden border-b border-lime-100">
+    <div class="relative h-32 md:h-40 overflow-hidden border-b border-lime-100">
         <div id="loading-placeholder" class="absolute inset-0 flex items-center justify-center bg-lime-50 animate-pulse">
-            <i data-lucide="leaf" class="w-10 h-10 text-lime-200 animate-spin"></i>
+            <i data-lucide="leaf" class="w-8 h-8 text-lime-200 animate-spin"></i>
         </div>
         <img id="header-img" src="" alt="Nature Banner" class="w-full h-full object-cover opacity-80 hidden">
         
         <div class="absolute inset-0 bg-gradient-to-t from-[#f7fcf2] to-transparent"></div>
         
-        <div class="absolute bottom-6 left-6 md:left-12 flex items-center gap-4">
-            <div class="bg-[#89b449] p-2.5 rounded-2xl shadow-xl shadow-lime-200/50">
-                <i data-lucide="hourglass" class="w-8 h-8 text-white"></i>
+        <div class="absolute bottom-4 left-6 md:left-12 flex items-center gap-3">
+            <div class="bg-[#89b449] p-2 rounded-xl shadow-lg shadow-lime-200/40">
+                <i data-lucide="hourglass" class="w-6 h-6 text-white"></i>
             </div>
             <div>
-                <h1 class="text-3xl font-black tracking-tight">計時器</h1>
-                <p class="text-xs text-[#89b449] font-bold tracking-[0.2em] uppercase italic">Efficiency & Vitality</p>
+                <h1 class="text-2xl font-black tracking-tight">計時器</h1>
+                <p class="text-[10px] text-[#89b449] font-bold tracking-[0.15em] uppercase italic">Vitality & Flow</p>
             </div>
         </div>
     </div>
 
     <!-- 主要內容區 -->
-    <div class="max-w-6xl mx-auto p-6 md:p-12 -mt-6 relative z-10">
-        <div id="timer-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- 計時器卡片將在此生成 -->
+    <div class="max-w-7xl mx-auto p-4 md:p-8 -mt-4 relative z-10">
+        <div id="timer-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            <!-- 計時器卡片 -->
         </div>
     </div>
 
     <script>
-        const apiKey = ""; // 預留環境自動填充
+        const apiKey = ""; 
         let timers = [
-            { id: Date.now(), name: '輸入名稱', initialSeconds: 0, remainingSeconds: 0, isActive: false }
+            { id: Date.now(), name: '工作專注', initialSeconds: 0, remainingSeconds: 0, isActive: false }
         ];
 
-        // 初始化圖標
         function initIcons() {
             lucide.createIcons();
         }
 
-        // 生成 AI 背景圖 (Imagen 4.0)
         async function generateBackground() {
             const headerImg = document.getElementById('header-img');
             const placeholder = document.getElementById('loading-placeholder');
-            
             try {
                 const prompt = "A high-quality, minimalist, wide-angle banner of a fresh green forest with morning sunlight filtering through leaves, soft bokeh, serene and vital nature atmosphere, pastel green and white tones.";
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`, {
@@ -96,7 +93,6 @@
                         parameters: { sampleCount: 1 }
                     })
                 });
-                
                 const result = await response.json();
                 if (result.predictions && result.predictions[0]) {
                     headerImg.src = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
@@ -104,87 +100,151 @@
                     placeholder.classList.add('hidden');
                 }
             } catch (error) {
-                console.error("背景生成失敗", error);
-                placeholder.innerHTML = '<span class="text-lime-400 font-bold">Nature Mode</span>';
+                placeholder.innerHTML = '<span class="text-lime-400 font-bold text-xs uppercase tracking-widest">Nature Mode</span>';
             }
         }
 
-        // 渲染計時器列表
+        // 核心渲染：只在列表結構改變時調用
         function renderTimers() {
             const grid = document.getElementById('timer-grid');
             grid.innerHTML = '';
 
-            // 排序：剩餘時間少的在前
-            const sorted = [...timers].sort((a, b) => a.remainingSeconds - b.remainingSeconds);
-
-            sorted.forEach(timer => {
-                const mins = Math.floor(timer.remainingSeconds / 60);
-                const secs = timer.remainingSeconds % 60;
-                const isDone = timer.remainingSeconds === 0 && timer.initialSeconds > 0;
-                const isRunning = timer.isActive && timer.remainingSeconds > 0;
-
-                const card = document.createElement('div');
-                card.className = `group glass-card rounded-[2.5rem] border-2 transition-all duration-500 flex flex-col h-[150px] px-8 py-5 relative overflow-hidden ${
-                    isDone ? 'animate-done' : isRunning ? 'border-[#89b449]/40 bg-white/90 shadow-lg' : 'border-white bg-white/70 shadow-sm hover:shadow-xl hover:border-[#89b449]/50'
-                }`;
-
-                card.innerHTML = `
-                    <div class="absolute -right-4 -top-4 w-16 h-16 rounded-full transition-colors duration-500 ${isRunning ? 'bg-lime-50/50' : 'bg-stone-50/50'}"></div>
-                    
-                    <div class="flex justify-between items-center relative z-10">
-                        <div class="flex items-center gap-2">
-                            ${isRunning ? '<i data-lucide="zap" class="w-3 h-3 text-yellow-500 animate-bounce"></i>' : ''}
-                            <input type="text" value="${timer.name}" 
-                                class="font-black text-sm text-[#4a5d33] bg-transparent outline-none border-b-2 border-transparent focus:border-[#89b449]"
-                                onchange="updateName(${timer.id}, this.value)">
-                        </div>
-                        <button onclick="deleteTimer(${timer.id})" class="text-stone-300 hover:text-[#ff6b6b] p-1">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-
-                    <div class="flex-1 flex items-center justify-center gap-1 relative z-10 scale-110">
-                        <input type="number" value="${mins}" 
-                            class="w-16 text-5xl font-mono font-black text-center bg-transparent outline-none transition-colors ${isRunning ? 'text-[#89b449]' : isDone ? 'text-[#ff9f43]' : 'text-[#2d3a1f]'}"
-                            onfocus="this.select()" onchange="handleInputChange(${timer.id}, 'mins', this.value)">
-                        <span class="text-3xl font-bold ${isRunning ? 'text-[#89b449]/40' : 'text-stone-200'}">:</span>
-                        <input type="number" value="${secs}" 
-                            class="w-16 text-5xl font-mono font-black text-center bg-transparent outline-none transition-colors ${isRunning ? 'text-[#89b449]' : isDone ? 'text-[#ff9f43]' : 'text-[#2d3a1f]'}"
-                            onfocus="this.select()" onchange="handleInputChange(${timer.id}, 'secs', this.value)">
-                    </div>
-
-                    <div class="text-center relative z-10">
-                        <p class="text-[9px] font-black uppercase tracking-[0.2em] ${isRunning ? 'text-[#89b449]' : isDone ? 'text-[#ff9f43]' : 'text-stone-400'}">
-                            ${isRunning ? "Focusing" : isDone ? "Finish!" : "Set Time"}
-                        </p>
-                    </div>
-                `;
+            // 這裡不自動排序，避免輸入時卡片跳動，若需要排序可另設按鈕
+            timers.forEach(timer => {
+                const card = createTimerCard(timer);
                 grid.appendChild(card);
             });
 
-            // 新增按鈕卡片
+            // 新增按鈕
             const addCard = document.createElement('button');
-            addCard.className = "group flex items-center justify-center gap-4 bg-white/40 backdrop-blur-sm rounded-[2.5rem] border-2 border-dashed border-[#c5e1a5] h-[150px] transition-all hover:border-[#89b449] hover:bg-white/60 active:scale-95 shadow-sm";
+            addCard.className = "group flex items-center justify-center gap-3 bg-white/40 backdrop-blur-sm rounded-[1.5rem] border border-dashed border-[#c5e1a5] h-[110px] transition-all hover:border-[#89b449] hover:bg-white/60 active:scale-95 shadow-sm";
             addCard.onclick = addNewTimer;
             addCard.innerHTML = `
-                <div class="bg-white p-3 rounded-2xl shadow-sm group-hover:bg-[#89b449] transition-all relative">
-                    <i data-lucide="hourglass" class="w-6 h-6 text-[#89b449] group-hover:text-white"></i>
-                    <div class="absolute -right-1 -bottom-1 bg-white rounded-full p-0.5 group-hover:bg-[#89b449] transition-colors">
-                        <i data-lucide="plus" class="w-2.5 h-2.5 text-[#89b449] group-hover:text-white stroke-[4px]"></i>
-                    </div>
+                <div class="bg-white p-2 rounded-xl shadow-sm group-hover:bg-[#89b449] transition-all relative">
+                    <i data-lucide="hourglass" class="w-4 h-4 text-[#89b449] group-hover:text-white"></i>
                 </div>
                 <div class="text-left">
-                    <span class="block text-lg font-black text-[#89b449]">新增任務</span>
-                    <span class="block text-[9px] font-bold text-[#89b449]/60 uppercase tracking-widest italic">New Vitality</span>
+                    <span class="block text-sm font-black text-[#89b449]">新增計時</span>
+                    <span class="block text-[8px] font-bold text-[#89b449]/50 uppercase tracking-widest">Add Task</span>
                 </div>
             `;
             grid.appendChild(addCard);
             initIcons();
         }
 
-        // 功能函式
+        function createTimerCard(timer) {
+            const mins = Math.floor(timer.remainingSeconds / 60);
+            const secs = timer.remainingSeconds % 60;
+            const isDone = timer.remainingSeconds === 0 && timer.initialSeconds > 0;
+            const isRunning = timer.isActive && timer.remainingSeconds > 0;
+
+            const card = document.createElement('div');
+            card.id = `timer-card-${timer.id}`;
+            card.className = `group glass-card rounded-[1.5rem] border transition-all duration-300 flex flex-col h-[110px] px-5 py-3 relative overflow-hidden ${
+                isDone ? 'animate-done border-orange-300' : isRunning ? 'border-[#89b449]/40 bg-white/95 shadow-md' : 'border-white bg-white/75 shadow-sm hover:shadow-lg hover:border-[#89b449]/30'
+            }`;
+
+            card.innerHTML = `
+                <div class="absolute -right-2 -top-2 w-10 h-10 rounded-full bg-stone-50/50 status-bg"></div>
+                
+                <div class="flex justify-between items-center relative z-10 mb-1">
+                    <div class="flex items-center gap-1.5 overflow-hidden">
+                        <span class="zap-icon">${isRunning ? '<i data-lucide="zap" class="w-2.5 h-2.5 text-yellow-500 animate-pulse"></i>' : ''}</span>
+                        <input type="text" value="${timer.name}" 
+                            class="font-bold text-[11px] text-[#4a5d33] bg-transparent outline-none w-full truncate border-b border-transparent focus:border-[#89b449]/50"
+                            oninput="updateTimerData(${timer.id}, 'name', this.value)">
+                    </div>
+                    <button onclick="deleteTimer(${timer.id})" class="text-stone-300 hover:text-[#ff6b6b] p-0.5 transition-colors">
+                        <i data-lucide="trash-2" class="w-3 h-3"></i>
+                    </button>
+                </div>
+
+                <div class="flex-1 flex items-center justify-center gap-0.5 relative z-10">
+                    <input type="number" value="${mins}" placeholder="00"
+                        class="mins-input w-10 text-3xl font-mono font-black text-center bg-transparent outline-none transition-colors ${isRunning ? 'text-[#89b449]' : isDone ? 'text-[#ff9f43]' : 'text-[#2d3a1f]'}"
+                        onfocus="this.select()" oninput="updateTimerTime(${timer.id}, 'mins', this.value)">
+                    <span class="text-xl font-bold colon ${isRunning ? 'text-[#89b449]/30' : 'text-stone-200'}">:</span>
+                    <input type="number" value="${secs}" placeholder="00"
+                        class="secs-input w-10 text-3xl font-mono font-black text-center bg-transparent outline-none transition-colors ${isRunning ? 'text-[#89b449]' : isDone ? 'text-[#ff9f43]' : 'text-[#2d3a1f]'}"
+                        onfocus="this.select()" oninput="updateTimerTime(${timer.id}, 'secs', this.value)">
+                </div>
+
+                <div class="text-center relative z-10 mt-0.5">
+                    <p class="status-text text-[8px] font-black uppercase tracking-[0.15em] ${isRunning ? 'text-[#89b449]' : isDone ? 'text-[#ff9f43]' : 'text-stone-400'}">
+                        ${isRunning ? "Running" : isDone ? "Finish!" : "Set Time"}
+                    </p>
+                </div>
+            `;
+            return card;
+        }
+
+        // 即時更新數據，不重繪 DOM
+        function updateTimerData(id, field, value) {
+            const timer = timers.find(t => t.id === id);
+            if (timer) timer[field] = value;
+        }
+
+        function updateTimerTime(id, field, value) {
+            const timer = timers.find(t => t.id === id);
+            if (!timer) return;
+
+            let numValue = Math.max(0, parseInt(value) || 0);
+            const currentMins = Math.floor(timer.remainingSeconds / 60);
+            const currentSecs = timer.remainingSeconds % 60;
+
+            if (field === 'mins') {
+                timer.remainingSeconds = numValue * 60 + currentSecs;
+            } else {
+                timer.remainingSeconds = currentMins * 60 + Math.min(59, numValue);
+            }
+            timer.initialSeconds = timer.remainingSeconds;
+            timer.isActive = timer.remainingSeconds > 0;
+            
+            // 手動更新該卡片的狀態類別，而不重新渲染整個 grid
+            updateCardVisuals(timer);
+        }
+
+        function updateCardVisuals(timer) {
+            const card = document.getElementById(`timer-card-${timer.id}`);
+            if (!card) return;
+
+            const isDone = timer.remainingSeconds === 0 && timer.initialSeconds > 0;
+            const isRunning = timer.isActive && timer.remainingSeconds > 0;
+
+            // 更新顏色與動畫
+            card.className = `group glass-card rounded-[1.5rem] border transition-all duration-300 flex flex-col h-[110px] px-5 py-3 relative overflow-hidden ${
+                isDone ? 'animate-done border-orange-300' : isRunning ? 'border-[#89b449]/40 bg-white/95 shadow-md' : 'border-white bg-white/75 shadow-sm hover:shadow-lg hover:border-[#89b449]/30'
+            }`;
+
+            // 更新文字與圖示
+            const minsInput = card.querySelector('.mins-input');
+            const secsInput = card.querySelector('.secs-input');
+            const statusText = card.querySelector('.status-text');
+            const zapIcon = card.querySelector('.zap-icon');
+            const colon = card.querySelector('.colon');
+
+            minsInput.value = Math.floor(timer.remainingSeconds / 60);
+            secsInput.value = timer.remainingSeconds % 60;
+            
+            const colorClass = isRunning ? 'text-[#89b449]' : isDone ? 'text-[#ff9f43]' : 'text-[#2d3a1f]';
+            minsInput.className = `mins-input w-10 text-3xl font-mono font-black text-center bg-transparent outline-none transition-colors ${colorClass}`;
+            secsInput.className = `secs-input w-10 text-3xl font-mono font-black text-center bg-transparent outline-none transition-colors ${colorClass}`;
+            
+            statusText.innerText = isRunning ? "Running" : isDone ? "Finish!" : "Set Time";
+            statusText.className = `status-text text-[8px] font-black uppercase tracking-[0.15em] ${isRunning ? 'text-[#89b449]' : isDone ? 'text-[#ff9f43]' : 'text-stone-400'}`;
+            
+            colon.className = `text-xl font-bold colon ${isRunning ? 'text-[#89b449]/30' : 'text-stone-200'}`;
+            
+            if (isRunning && zapIcon.innerHTML === '') {
+                zapIcon.innerHTML = '<i data-lucide="zap" class="w-2.5 h-2.5 text-yellow-500 animate-pulse"></i>';
+                lucide.createIcons();
+            } else if (!isRunning) {
+                zapIcon.innerHTML = '';
+            }
+        }
+
         function addNewTimer() {
-            timers.push({ id: Date.now(), name: `新計畫 ${timers.length + 1}`, initialSeconds: 0, remainingSeconds: 0, isActive: false });
+            timers.push({ id: Date.now(), name: `計畫 ${timers.length + 1}`, initialSeconds: 0, remainingSeconds: 0, isActive: false });
             renderTimers();
         }
 
@@ -193,48 +253,20 @@
             renderTimers();
         }
 
-        function updateName(id, name) {
-            timers = timers.map(t => t.id === id ? { ...t, name } : t);
-        }
-
-        function handleInputChange(id, field, value) {
-            timers = timers.map(timer => {
-                if (timer.id === id) {
-                    const mins = Math.floor(timer.remainingSeconds / 60);
-                    const secs = timer.remainingSeconds % 60;
-                    let numValue = Math.max(0, parseInt(value) || 0);
-                    let newTotal;
-                    
-                    if (field === 'mins') {
-                        newTotal = numValue * 60 + secs;
-                    } else {
-                        newTotal = mins * 60 + Math.min(59, numValue);
-                    }
-                    
-                    return { ...timer, initialSeconds: newTotal, remainingSeconds: newTotal, isActive: newTotal > 0 };
-                }
-                return timer;
-            });
-            renderTimers();
-        }
-
-        // 計時核心循環
+        // 計時器每秒更新
         setInterval(() => {
-            let changed = false;
-            timers = timers.map(timer => {
+            timers.forEach(timer => {
                 if (timer.isActive && timer.remainingSeconds > 0) {
-                    changed = true;
-                    return { ...timer, remainingSeconds: timer.remainingSeconds - 1 };
+                    timer.remainingSeconds -= 1;
+                    updateCardVisuals(timer);
                 } else if (timer.isActive && timer.remainingSeconds <= 0) {
-                    changed = true;
-                    return { ...timer, remainingSeconds: 0, isActive: false };
+                    timer.remainingSeconds = 0;
+                    timer.isActive = false;
+                    updateCardVisuals(timer);
                 }
-                return timer;
             });
-            if (changed) renderTimers();
         }, 1000);
 
-        // 初始執行
         window.onload = () => {
             generateBackground();
             renderTimers();
