@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>計時器</title>
-    <link rel="icon" href="下載4.jpg" type="image/jpg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Varela+Round&family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -57,11 +57,7 @@
             gap: 2rem;
         }
 
-        .brand {
-            display: flex;
-            flex-direction: column;
-            gap: 0.15rem;
-        }
+        .brand { display: flex; flex-direction: column; gap: 0.15rem; }
 
         .brand-eyebrow {
             font-family: 'Nunito', sans-serif;
@@ -91,11 +87,7 @@
             padding-bottom: 0.4rem;
         }
 
-        .header-meta {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
+        .header-meta { display: flex; align-items: center; gap: 0.75rem; }
 
         .live-dot {
             width: 7px; height: 7px;
@@ -104,12 +96,24 @@
             animation: livepulse 2s ease infinite;
         }
 
+        /* Sync indicator */
+        .sync-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: #aaa;
+            transition: background 0.3s;
+            flex-shrink: 0;
+        }
+        .sync-dot.synced { background: #5cb85c; animation: livepulse 2s ease infinite; }
+        .sync-dot.syncing { background: var(--amber); animation: livepulse 0.6s ease infinite; }
+        .sync-dot.error { background: #e05252; }
+
         @keyframes livepulse {
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.4; transform: scale(0.8); }
         }
 
-        .live-label {
+        .live-label, .sync-label {
             font-family: 'Nunito', sans-serif;
             font-size: 0.6rem;
             color: var(--ink-soft);
@@ -117,7 +121,6 @@
             text-transform: uppercase;
         }
 
-        /* === SORT TOGGLE === */
         .sort-toggle {
             display: flex;
             align-items: center;
@@ -132,45 +135,27 @@
             user-select: none;
         }
 
-        .sort-toggle:hover {
-            border-color: var(--sage);
-            box-shadow: 0 2px 12px rgba(122, 158, 90, 0.15);
-        }
+        .sort-toggle:hover { border-color: var(--sage); box-shadow: 0 2px 12px rgba(122, 158, 90, 0.15); }
+        .sort-toggle.active { background: var(--sage-pale); border-color: var(--sage); }
 
-        .sort-toggle.active {
-            background: var(--sage-pale);
-            border-color: var(--sage);
-        }
-
-        .sort-icon {
-            display: flex;
-            flex-direction: column;
-            gap: 2.5px;
-            width: 14px;
-        }
-
+        .sort-icon { display: flex; flex-direction: column; gap: 2.5px; width: 14px; }
         .sort-icon span {
-            display: block;
-            height: 1.5px;
+            display: block; height: 1.5px;
             background: var(--ink-soft);
             border-radius: 2px;
             transition: background 0.2s, width 0.25s ease;
         }
-
         .sort-icon span:nth-child(1) { width: 100%; }
         .sort-icon span:nth-child(2) { width: 70%; }
         .sort-icon span:nth-child(3) { width: 40%; }
-
         .sort-toggle.active .sort-icon span { background: var(--sage); }
 
-        /* Arrow indicator for sort direction */
         .sort-arrow {
             font-size: 0.6rem;
             color: var(--ink-soft);
             transition: transform 0.25s ease, color 0.2s;
             line-height: 1;
         }
-
         .sort-toggle.active .sort-arrow { color: var(--sage); }
         .sort-toggle.desc .sort-arrow { transform: rotate(180deg); }
 
@@ -182,7 +167,6 @@
             color: var(--ink-soft);
             transition: color 0.2s;
         }
-
         .sort-toggle.active .sort-label { color: var(--sage); font-weight: 700; }
 
         .divider {
@@ -190,21 +174,17 @@
             background: linear-gradient(90deg, var(--sage-light) 0%, transparent 100%);
             margin: 1.5rem 3rem 0;
             opacity: 0.4;
-            position: relative;
-            z-index: 10;
+            position: relative; z-index: 10;
         }
 
-        /* === GRID === */
         .grid-wrap {
-            position: relative;
-            z-index: 10;
+            position: relative; z-index: 10;
             padding: 2rem 3rem 3rem;
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
             gap: 1rem;
         }
 
-        /* === TIMER CARD === */
         .timer-card {
             position: relative;
             background: var(--cream);
@@ -213,17 +193,11 @@
             padding: 1.25rem 1.4rem 1rem;
             box-shadow: var(--shadow-card);
             transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.2s ease, opacity 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            overflow: hidden;
-            min-height: 130px;
+            display: flex; flex-direction: column; gap: 0.5rem;
+            overflow: hidden; min-height: 130px;
         }
 
-        .timer-card:hover {
-            box-shadow: var(--shadow-hover);
-            transform: translateY(-2px);
-        }
+        .timer-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); }
 
         .timer-card::before {
             content: '';
@@ -242,7 +216,6 @@
             border-color: rgba(212, 131, 10, 0.3);
             animation: donePulse 2.2s ease infinite;
         }
-
         .timer-card.done::before {
             background: linear-gradient(90deg, var(--amber-light), var(--amber));
             opacity: 1;
@@ -253,131 +226,81 @@
             50% { box-shadow: 0 6px 30px rgba(212, 131, 10, 0.2); }
         }
 
-        /* Sort rank badge */
         .rank-badge {
-            position: absolute;
-            top: 0.6rem;
-            right: 0.6rem;
+            position: absolute; top: 0.6rem; right: 0.6rem;
             width: 18px; height: 18px;
             border-radius: 50%;
             background: var(--sage-pale);
             border: 1px solid var(--sage-light);
-            display: none;
-            align-items: center;
-            justify-content: center;
+            display: none; align-items: center; justify-content: center;
             font-family: 'Nunito', sans-serif;
-            font-size: 0.5rem;
-            font-weight: 900;
+            font-size: 0.5rem; font-weight: 900;
             color: var(--sage);
-            letter-spacing: 0;
-            transition: opacity 0.3s;
-            z-index: 2;
+            transition: opacity 0.3s; z-index: 2;
         }
-
         body.sort-active .rank-badge { display: flex; }
 
-        .card-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.5rem;
-        }
+        .card-top { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 
-        .task-name-wrap {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            overflow: hidden;
-            flex: 1;
-        }
+        .task-name-wrap { display: flex; align-items: center; gap: 0.4rem; overflow: hidden; flex: 1; }
 
         .running-dot {
-            flex-shrink: 0;
-            width: 5px; height: 5px;
+            flex-shrink: 0; width: 5px; height: 5px;
             border-radius: 50%;
             background: var(--sage);
             animation: livepulse 1s ease infinite;
             display: none;
         }
-
         .timer-card.running .running-dot { display: block; }
 
         .task-name {
             font-family: 'Noto Sans TC', sans-serif;
-            font-size: 0.7rem;
-            font-weight: 700;
+            font-size: 0.7rem; font-weight: 700;
             color: var(--ink-mid);
-            background: transparent;
-            border: none;
-            outline: none;
+            background: transparent; border: none; outline: none;
             width: 100%;
             letter-spacing: 0.03em;
             border-bottom: 1px solid transparent;
-            transition: border-color 0.2s;
-            padding: 0;
+            transition: border-color 0.2s; padding: 0;
         }
-
         .task-name:focus { border-bottom-color: var(--sage-light); }
 
         .delete-btn {
             flex-shrink: 0;
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #ccc;
-            font-size: 0.75rem;
+            background: none; border: none; cursor: pointer;
+            color: #ccc; font-size: 0.75rem;
             width: 20px; height: 20px;
             display: flex; align-items: center; justify-content: center;
             border-radius: 50%;
             transition: color 0.2s, background 0.2s;
         }
-
         .delete-btn:hover { color: #e05252; background: #fff0f0; }
 
-        .time-row {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 2px;
-            flex: 1;
-        }
+        .time-row { display: flex; align-items: center; justify-content: center; gap: 2px; flex: 1; }
 
         .time-input {
             font-family: 'Varela Round', sans-serif;
-            font-size: 2.6rem;
-            font-weight: 900;
-            width: 2.2ch;
-            text-align: center;
-            background: transparent;
-            border: none;
-            outline: none;
-            color: var(--ink);
-            line-height: 1;
+            font-size: 2.6rem; font-weight: 900;
+            width: 2.2ch; text-align: center;
+            background: transparent; border: none; outline: none;
+            color: var(--ink); line-height: 1;
             transition: color 0.3s;
             -moz-appearance: textfield;
         }
-
         .time-input::-webkit-inner-spin-button,
         .time-input::-webkit-outer-spin-button { -webkit-appearance: none; }
-
         .time-input:focus { color: var(--sage); }
         .timer-card.running .time-input { color: var(--sage); }
         .timer-card.done .time-input { color: var(--amber); }
 
         .colon {
             font-family: 'Varela Round', sans-serif;
-            font-size: 2rem;
-            font-weight: 300;
-            color: var(--sage-light);
-            line-height: 1;
-            margin-bottom: 4px;
-            opacity: 0.6;
+            font-size: 2rem; font-weight: 300;
+            color: var(--sage-light); line-height: 1;
+            margin-bottom: 4px; opacity: 0.6;
             transition: opacity 0.5s;
         }
-
-        .timer-card.running .colon {
-            animation: colonBlink 1s step-start infinite;
-        }
+        .timer-card.running .colon { animation: colonBlink 1s step-start infinite; }
 
         @keyframes colonBlink {
             0%, 100% { opacity: 0.6; }
@@ -388,58 +311,62 @@
 
         .status-text {
             font-family: 'Nunito', sans-serif;
-            font-size: 0.55rem;
-            letter-spacing: 0.22em;
-            text-transform: uppercase;
-            color: #bbc9a8;
+            font-size: 0.55rem; letter-spacing: 0.22em;
+            text-transform: uppercase; color: #bbc9a8;
             transition: color 0.3s;
         }
-
         .timer-card.running .status-text { color: var(--sage); }
         .timer-card.done .status-text { color: var(--amber); }
 
-        /* === ADD CARD === */
         .add-card {
             min-height: 130px;
             background: transparent;
             border: 1.5px dashed rgba(122, 158, 90, 0.28);
             border-radius: 1.25rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 0.5rem;
             cursor: pointer;
             transition: border-color 0.2s, background 0.2s, transform 0.15s;
         }
-
-        .add-card:hover {
-            border-color: var(--sage);
-            background: rgba(122, 158, 90, 0.04);
-            transform: translateY(-2px);
-        }
-
+        .add-card:hover { border-color: var(--sage); background: rgba(122, 158, 90, 0.04); transform: translateY(-2px); }
         .add-card:active { transform: scale(0.97); }
 
         .add-icon {
-            width: 36px; height: 36px;
-            border-radius: 50%;
+            width: 36px; height: 36px; border-radius: 50%;
             background: var(--sage-pale);
             display: flex; align-items: center; justify-content: center;
-            color: var(--sage);
-            font-size: 1.2rem;
+            color: var(--sage); font-size: 1.2rem;
             transition: background 0.2s;
         }
-
         .add-card:hover .add-icon { background: var(--sage); color: #fff; }
 
         .add-label {
             font-family: 'Nunito', sans-serif;
-            font-size: 0.6rem;
-            letter-spacing: 0.18em;
-            text-transform: uppercase;
-            color: var(--ink-soft);
-            opacity: 0.6;
+            font-size: 0.6rem; letter-spacing: 0.18em;
+            text-transform: uppercase; color: var(--ink-soft); opacity: 0.6;
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            background: var(--parchment);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 1rem;
+            transition: opacity 0.5s ease;
+        }
+        .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+        .loading-spinner {
+            width: 36px; height: 36px;
+            border: 3px solid var(--sage-pale);
+            border-top-color: var(--sage);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text {
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.65rem; letter-spacing: 0.2em;
+            text-transform: uppercase; color: var(--ink-soft);
         }
 
         @media (max-width: 640px) {
@@ -451,22 +378,47 @@
             .time-input { font-size: 2.1rem; }
         }
 
-        .timer-card, .add-card {
-            animation: cardIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
+        .timer-card, .add-card { animation: cardIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
         @keyframes cardIn {
             from { opacity: 0; transform: translateY(10px) scale(0.97); }
             to   { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* Sort transition for reorder */
         .grid-wrap.sorting .timer-card {
             transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.35s cubic-bezier(0.22,1,0.36,1), opacity 0.3s ease;
         }
+
+        /* Toast notification */
+        .toast {
+            position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 200;
+            background: var(--ink);
+            color: #fff;
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.65rem;
+            letter-spacing: 0.1em;
+            padding: 0.6rem 1rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s, transform 0.3s;
+            pointer-events: none;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { background: var(--sage); }
+        .toast.error { background: #e05252; }
     </style>
 </head>
 <body>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loading-overlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">連接資料庫中…</div>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <header>
     <div class="brand">
@@ -478,7 +430,10 @@
             <div class="live-dot"></div>
             <span class="live-label">即時計時</span>
         </div>
-        <!-- Sort Toggle Button -->
+        <div class="header-meta">
+            <div class="sync-dot" id="sync-dot"></div>
+            <span class="sync-label" id="sync-label">連接中</span>
+        </div>
         <button class="sort-toggle" id="sort-btn" onclick="toggleSort()" title="依剩餘時間排序">
             <div class="sort-icon">
                 <span></span><span></span><span></span>
@@ -494,13 +449,158 @@
 <div class="grid-wrap" id="timer-grid"></div>
 
 <script>
-    let timers = [
-        { id: Date.now(), name: '輸入名稱', initialSeconds: 0, remainingSeconds: 0, isActive: false }
-    ];
+    // ─── Supabase Init ───────────────────────────────────────────────
+    const SUPABASE_URL = 'https://zhcahednvdamivzlwziz.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoY2FoZWRudmRhbWl2emx3eml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMTM4MTIsImV4cCI6MjA4OTg4OTgxMn0.W1R1dddjcP28QKqECH4bELwMq3eSWCB0lJUMLtzQp04';
+    const { createClient } = supabase;
+    const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Sort state: 'none' | 'asc' | 'desc'
+    const TABLE = 'timers';
+
+    // ─── State ───────────────────────────────────────────────────────
+    let timers = [];
     let sortMode = 'none';
+    let isSyncing = false;
+    let pendingSave = {}; // id → debounce timeout
 
+    // ─── Toast ───────────────────────────────────────────────────────
+    function showToast(msg, type = '') {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = `toast show ${type}`;
+        setTimeout(() => { t.className = 'toast'; }, 2500);
+    }
+
+    // ─── Sync Indicator ──────────────────────────────────────────────
+    function setSyncStatus(status) {
+        const dot = document.getElementById('sync-dot');
+        const label = document.getElementById('sync-label');
+        dot.className = `sync-dot ${status}`;
+        const labels = { synced: '已同步', syncing: '同步中', error: '連線錯誤', '': '連接中' };
+        label.textContent = labels[status] || '連接中';
+    }
+
+    // ─── DB Operations ───────────────────────────────────────────────
+    async function loadTimers() {
+        setSyncStatus('syncing');
+        const { data, error } = await db
+            .from(TABLE)
+            .select('*')
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('Load error:', error);
+            // If table doesn't exist, initialize with default timer
+            if (error.code === '42P01') {
+                await createTable();
+                return;
+            }
+            setSyncStatus('error');
+            showToast('載入失敗，使用本機模式', 'error');
+            timers = [{ id: Date.now().toString(), name: '輸入名稱', initial_seconds: 0, remaining_seconds: 0, is_active: false, created_at: new Date().toISOString() }];
+        } else {
+            timers = data.length > 0 ? data : [];
+            if (timers.length === 0) {
+                await addTimerToDB({ name: '輸入名稱', initial_seconds: 0, remaining_seconds: 0, is_active: false });
+                return;
+            }
+            setSyncStatus('synced');
+        }
+
+        hideLoading();
+        renderTimers();
+        subscribeRealtime();
+    }
+
+    async function createTable() {
+        // Table doesn't exist — fallback to local mode with guidance
+        setSyncStatus('error');
+        showToast('請先建立 timers 資料表', 'error');
+        timers = [{ id: Date.now().toString(), name: '輸入名稱', initial_seconds: 0, remaining_seconds: 0, is_active: false, created_at: new Date().toISOString() }];
+        hideLoading();
+        renderTimers();
+    }
+
+    async function addTimerToDB(fields = {}) {
+        const row = {
+            name: fields.name || '輸入名稱',
+            initial_seconds: fields.initial_seconds ?? 0,
+            remaining_seconds: fields.remaining_seconds ?? 0,
+            is_active: fields.is_active ?? false,
+        };
+        const { data, error } = await db.from(TABLE).insert(row).select().single();
+        if (error) { console.error('Insert error:', error); showToast('新增失敗', 'error'); return; }
+        timers.push(data);
+        renderTimers();
+        setSyncStatus('synced');
+    }
+
+    async function updateTimerInDB(id, fields) {
+        const { error } = await db.from(TABLE).update(fields).eq('id', id);
+        if (error) { console.error('Update error:', error); setSyncStatus('error'); }
+        else setSyncStatus('synced');
+    }
+
+    async function deleteTimerFromDB(id) {
+        setSyncStatus('syncing');
+        const { error } = await db.from(TABLE).delete().eq('id', id);
+        if (error) { console.error('Delete error:', error); setSyncStatus('error'); showToast('刪除失敗', 'error'); }
+        else { setSyncStatus('synced'); showToast('已刪除', ''); }
+    }
+
+    // Debounced save (for text/time input changes)
+    function debouncedSave(id, fields, delay = 800) {
+        if (pendingSave[id]) clearTimeout(pendingSave[id]);
+        setSyncStatus('syncing');
+        pendingSave[id] = setTimeout(() => {
+            updateTimerInDB(id, fields);
+            delete pendingSave[id];
+        }, delay);
+    }
+
+    // ─── Realtime Subscription ───────────────────────────────────────
+    function subscribeRealtime() {
+        db.channel('timers-realtime')
+            .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, payload => {
+                handleRealtimeEvent(payload);
+            })
+            .subscribe(status => {
+                if (status === 'SUBSCRIBED') setSyncStatus('synced');
+                else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') setSyncStatus('error');
+            });
+    }
+
+    function handleRealtimeEvent(payload) {
+        const { eventType, new: newRow, old: oldRow } = payload;
+        if (eventType === 'INSERT') {
+            if (!timers.find(t => t.id === newRow.id)) {
+                timers.push(newRow);
+                renderTimers();
+            }
+        } else if (eventType === 'UPDATE') {
+            const idx = timers.findIndex(t => t.id === newRow.id);
+            if (idx !== -1) {
+                // Merge: don't overwrite if this tab is actively counting
+                const local = timers[idx];
+                if (!local.is_active) {
+                    timers[idx] = newRow;
+                    refreshCard(timers[idx]);
+                }
+            }
+        } else if (eventType === 'DELETE') {
+            timers = timers.filter(t => t.id !== oldRow.id);
+            renderTimers();
+        }
+    }
+
+    // ─── Loading ─────────────────────────────────────────────────────
+    function hideLoading() {
+        const overlay = document.getElementById('loading-overlay');
+        overlay.classList.add('hidden');
+        setTimeout(() => overlay.style.display = 'none', 600);
+    }
+
+    // ─── Sort ────────────────────────────────────────────────────────
     function toggleSort() {
         if (sortMode === 'none') sortMode = 'asc';
         else if (sortMode === 'asc') sortMode = 'desc';
@@ -521,38 +621,32 @@
             btn.classList.add('active', 'desc');
             document.body.classList.add('sort-active');
         }
-
         renderTimers();
     }
 
     function getSortedTimers() {
         if (sortMode === 'none') return [...timers];
-
         return [...timers].sort((a, b) => {
-            // Finished timers always go to end
-            const aDone = a.remainingSeconds === 0 && a.initialSeconds > 0 && !a.isActive;
-            const bDone = b.remainingSeconds === 0 && b.initialSeconds > 0 && !b.isActive;
+            const aDone = a.remaining_seconds === 0 && a.initial_seconds > 0 && !a.is_active;
+            const bDone = b.remaining_seconds === 0 && b.initial_seconds > 0 && !b.is_active;
             if (aDone && !bDone) return 1;
             if (!aDone && bDone) return -1;
-
-            // Unset timers (no initialSeconds) go after running/set ones
-            const aUnset = a.initialSeconds === 0;
-            const bUnset = b.initialSeconds === 0;
+            const aUnset = a.initial_seconds === 0;
+            const bUnset = b.initial_seconds === 0;
             if (aUnset && !bUnset) return 1;
             if (!aUnset && bUnset) return -1;
-
-            const diff = a.remainingSeconds - b.remainingSeconds;
+            const diff = a.remaining_seconds - b.remaining_seconds;
             return sortMode === 'asc' ? diff : -diff;
         });
     }
 
+    // ─── Render ──────────────────────────────────────────────────────
     function renderTimers() {
         const grid = document.getElementById('timer-grid');
         grid.classList.add('sorting');
         grid.innerHTML = '';
 
         const sorted = getSortedTimers();
-        // Map original index for rank badge
         const rankMap = {};
         sorted.forEach((t, i) => { rankMap[t.id] = i + 1; });
 
@@ -562,25 +656,21 @@
             grid.appendChild(card);
         });
 
-        // Add card
         const add = document.createElement('button');
         add.className = 'add-card';
         add.style.animationDelay = `${timers.length * 0.04}s`;
         add.onclick = addTimer;
-        add.innerHTML = `
-            <div class="add-icon">＋</div>
-            <span class="add-label">新增計時</span>
-        `;
+        add.innerHTML = `<div class="add-icon">＋</div><span class="add-label">新增計時</span>`;
         grid.appendChild(add);
 
         setTimeout(() => grid.classList.remove('sorting'), 400);
     }
 
     function createCard(timer, rank) {
-        const mins = Math.floor(timer.remainingSeconds / 60);
-        const secs = timer.remainingSeconds % 60;
-        const isDone = timer.remainingSeconds === 0 && timer.initialSeconds > 0 && !timer.isActive;
-        const isRunning = timer.isActive && timer.remainingSeconds > 0;
+        const mins = Math.floor(timer.remaining_seconds / 60);
+        const secs = timer.remaining_seconds % 60;
+        const isDone = timer.remaining_seconds === 0 && timer.initial_seconds > 0 && !timer.is_active;
+        const isRunning = timer.is_active && timer.remaining_seconds > 0;
 
         const card = document.createElement('div');
         card.id = `card-${timer.id}`;
@@ -591,17 +681,17 @@
             <div class="card-top">
                 <div class="task-name-wrap">
                     <div class="running-dot"></div>
-                    <input class="task-name" type="text" value="${timer.name}" 
-                        oninput="updateField(${timer.id}, 'name', this.value)">
+                    <input class="task-name" type="text" value="${escapeAttr(timer.name)}"
+                        onchange="updateName('${timer.id}', this.value)">
                 </div>
-                <button class="delete-btn" onclick="deleteTimer(${timer.id})" title="刪除">✕</button>
+                <button class="delete-btn" onclick="deleteTimer('${timer.id}')" title="刪除">✕</button>
             </div>
             <div class="time-row">
                 <input class="time-input" type="number" value="${pad(mins)}" placeholder="00"
-                    onfocus="this.select()" oninput="updateTime(${timer.id}, 'mins', this.value)">
+                    onfocus="this.select()" onchange="updateTime('${timer.id}', 'mins', this.value)">
                 <span class="colon">:</span>
                 <input class="time-input" type="number" value="${pad(secs)}" placeholder="00"
-                    onfocus="this.select()" oninput="updateTime(${timer.id}, 'secs', this.value)">
+                    onfocus="this.select()" onchange="updateTime('${timer.id}', 'secs', this.value)">
             </div>
             <div class="status-row">
                 <span class="status-text">${isRunning ? 'Running' : isDone ? 'Finished' : 'Set Time'}</span>
@@ -610,73 +700,92 @@
         return card;
     }
 
+    function escapeAttr(str) {
+        return String(str || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    }
+
     function pad(n) { return String(n).padStart(2, '0'); }
 
-    function updateField(id, field, value) {
+    function refreshCard(timer) {
+        const card = document.getElementById(`card-${timer.id}`);
+        if (!card) return;
+        const isDone = timer.remaining_seconds === 0 && timer.initial_seconds > 0 && !timer.is_active;
+        const isRunning = timer.is_active && timer.remaining_seconds > 0;
+
+        card.className = `timer-card${isRunning ? ' running' : ''}${isDone ? ' done' : ''}`;
+
+        const [mInput, sInput] = card.querySelectorAll('.time-input');
+        if (document.activeElement !== mInput) mInput.value = pad(Math.floor(timer.remaining_seconds / 60));
+        if (document.activeElement !== sInput) sInput.value = pad(timer.remaining_seconds % 60);
+
+        card.querySelector('.status-text').textContent =
+            isRunning ? 'Running' : isDone ? 'Finished' : 'Set Time';
+    }
+
+    // ─── Actions ─────────────────────────────────────────────────────
+    function updateName(id, value) {
         const t = timers.find(t => t.id === id);
-        if (t) t[field] = value;
+        if (!t) return;
+        t.name = value;
+        debouncedSave(id, { name: value });
     }
 
     function updateTime(id, field, value) {
         const t = timers.find(t => t.id === id);
         if (!t) return;
         const n = Math.max(0, parseInt(value) || 0);
-        const m = Math.floor(t.remainingSeconds / 60);
-        const s = t.remainingSeconds % 60;
-        t.remainingSeconds = field === 'mins' ? n * 60 + s : m * 60 + Math.min(59, n);
-        t.initialSeconds = t.remainingSeconds;
-        t.isActive = t.remainingSeconds > 0;
+        const m = Math.floor(t.remaining_seconds / 60);
+        const s = t.remaining_seconds % 60;
+        t.remaining_seconds = field === 'mins' ? n * 60 + s : m * 60 + Math.min(59, n);
+        t.initial_seconds = t.remaining_seconds;
+        t.is_active = t.remaining_seconds > 0;
         refreshCard(t);
+        debouncedSave(id, { remaining_seconds: t.remaining_seconds, initial_seconds: t.initial_seconds, is_active: t.is_active }, 500);
     }
 
-    function refreshCard(timer) {
-        const card = document.getElementById(`card-${timer.id}`);
-        if (!card) return;
-        const isDone = timer.remainingSeconds === 0 && timer.initialSeconds > 0 && !timer.isActive;
-        const isRunning = timer.isActive && timer.remainingSeconds > 0;
-
-        card.className = `timer-card${isRunning ? ' running' : ''}${isDone ? ' done' : ''}`;
-
-        const [mInput, sInput] = card.querySelectorAll('.time-input');
-        mInput.value = pad(Math.floor(timer.remainingSeconds / 60));
-        sInput.value = pad(timer.remainingSeconds % 60);
-
-        card.querySelector('.status-text').textContent =
-            isRunning ? 'Running' : isDone ? 'Finished' : 'Set Time';
+    async function addTimer() {
+        await addTimerToDB({ name: '輸入名稱', initial_seconds: 0, remaining_seconds: 0, is_active: false });
     }
 
-    function addTimer() {
-        timers.push({ id: Date.now(), name: `輸入名稱`, initialSeconds: 0, remainingSeconds: 0, isActive: false });
-        renderTimers();
-    }
-
-    function deleteTimer(id) {
+    async function deleteTimer(id) {
         timers = timers.filter(t => t.id !== id);
         renderTimers();
+        await deleteTimerFromDB(id);
     }
 
-    // Tick interval — re-render grid when sort is active so order updates live
-    let lastSortRender = 0;
+    // ─── Tick ────────────────────────────────────────────────────────
+    // Batch DB writes every 5s to avoid flooding
+    let tickBuffer = {}; // id → timer state to flush
+
     setInterval(() => {
         let needsRerender = false;
         timers.forEach(t => {
-            if (t.isActive && t.remainingSeconds > 0) {
-                t.remainingSeconds--;
-                if (t.remainingSeconds === 0) t.isActive = false;
-                if (sortMode === 'none') {
-                    refreshCard(t);
+            if (t.is_active && t.remaining_seconds > 0) {
+                t.remaining_seconds--;
+                if (t.remaining_seconds === 0) {
+                    t.is_active = false;
+                    // Immediately persist completion
+                    updateTimerInDB(t.id, { remaining_seconds: 0, is_active: false });
                 } else {
-                    needsRerender = true;
+                    tickBuffer[t.id] = { remaining_seconds: t.remaining_seconds, is_active: t.is_active };
                 }
+                if (sortMode === 'none') refreshCard(t);
+                else needsRerender = true;
             }
         });
-        // Re-render at most every 1s when sorting active
-        if (needsRerender && sortMode !== 'none') {
-            renderTimers();
-        }
+        if (needsRerender && sortMode !== 'none') renderTimers();
     }, 1000);
 
-    renderTimers();
+    // Flush tick buffer every 5 seconds
+    setInterval(() => {
+        Object.entries(tickBuffer).forEach(([id, fields]) => {
+            updateTimerInDB(id, fields);
+        });
+        tickBuffer = {};
+    }, 5000);
+
+    // ─── Boot ────────────────────────────────────────────────────────
+    loadTimers();
 </script>
 </body>
 </html>
