@@ -29,31 +29,80 @@
                               radial-gradient(ellipse 60% 80% at 85% 75%, rgba(122, 158, 90, 0.10) 0%, transparent 55%);
             pointer-events: none; z-index: 0;
         }
-        header { position: relative; z-index: 10; padding: 2.5rem 3rem 0; display: flex; align-items: flex-end; justify-content: space-between; }
-        .brand-title { font-family: 'Nunito', sans-serif; font-size: 2.6rem; font-weight: 900; color: var(--ink); }
+        header { position: relative; z-index: 10; padding: 2rem 2.5rem 0; display: flex; align-items: flex-end; justify-content: space-between; }
+        .brand-title { font-family: 'Nunito', sans-serif; font-size: 2.4rem; font-weight: 900; color: var(--ink); }
         .brand-title span { color: var(--sage); }
         .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; display: inline-block; margin-right: 5px; }
         .sync-dot.synced { background: #5cb85c; box-shadow: 0 0 8px #5cb85c; }
         .sync-label { font-size: 0.7rem; color: var(--ink-soft); text-transform: uppercase; }
-        .grid-wrap { position: relative; z-index: 10; padding: 2rem 3rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem; }
-        .timer-card {
-            background: var(--cream); border: 1px solid var(--card-border); border-radius: 1.25rem;
-            padding: 2rem 1.5rem; box-shadow: var(--shadow-card); transition: all 0.3s ease;
-            display: flex; flex-direction: column; gap: 1rem; cursor: pointer; position: relative;
+
+        /* 調整格線系統，讓卡片更緊湊 */
+        .grid-wrap { 
+            position: relative; 
+            z-index: 10; 
+            padding: 1.5rem 2.5rem; 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); 
+            gap: 1.25rem; 
         }
-        .timer-card.running { border-color: var(--sage); background: var(--white); transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+
+        .timer-card {
+            background: var(--cream); border: 1px solid var(--card-border); border-radius: 1rem;
+            padding: 1.5rem 1.25rem 1.25rem; /* 縮減內距 */
+            box-shadow: var(--shadow-card); transition: all 0.3s ease;
+            display: flex; flex-direction: column; gap: 0.5rem; /* 減少元素間隔 */
+            cursor: pointer; position: relative;
+        }
+        .timer-card.running { border-color: var(--sage); background: var(--white); transform: translateY(-3px); box-shadow: var(--shadow-hover); }
         .timer-card.done { border-color: var(--amber); background: #fffcf5; animation: shake 0.5s infinite alternate; }
         @keyframes shake { from { transform: rotate(-1deg); } to { transform: rotate(1deg); } }
-        .task-name { font-size: 1.1rem; font-weight: 700; border: none; background: transparent; outline: none; color: var(--ink-mid); width: 80%; border-bottom: 2px solid transparent; }
+        
+        .task-name { font-size: 1rem; font-weight: 700; border: none; background: transparent; outline: none; color: var(--ink-mid); width: 85%; border-bottom: 2px solid transparent; margin-bottom: 0.25rem; }
         .task-name:focus { border-bottom-color: var(--sage); }
-        .time-display { display: flex; justify-content: center; align-items: center; gap: 0.2rem; }
-        .time-input { font-family: 'Varela Round', sans-serif; font-size: 3.5rem; font-weight: 900; width: 2.2ch; text-align: center; border: none; background: transparent; outline: none; color: var(--ink); border-radius: 0.5rem; }
+        
+        /* 緊湊化數位介面 */
+        .time-display { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            gap: 0; /* 移除間隙，靠寬度控制 */
+            margin: 0.25rem 0;
+        }
+        .time-input { 
+            font-family: 'Varela Round', sans-serif; 
+            font-size: 3.8rem; /* 稍微加大字體 */
+            font-weight: 900; 
+            width: 1.6em; /* 緊縮寬度 */
+            padding: 0;
+            text-align: center; 
+            border: none; 
+            background: transparent; 
+            outline: none; 
+            color: var(--ink); 
+            border-radius: 0.4rem; 
+            -moz-appearance: textfield;
+        }
+        .time-input::-webkit-outer-spin-button,
+        .time-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .time-input:focus { background: var(--sage-pale); }
-        .status-badge { font-size: 0.75rem; text-align: center; font-weight: 700; color: var(--ink-soft); padding: 0.5rem; background: rgba(0,0,0,0.04); border-radius: 2rem; }
-        .delete-btn { position: absolute; top: 1rem; right: 1rem; background: rgba(0,0,0,0.05); border: none; cursor: pointer; width: 26px; height: 26px; border-radius: 50%; color: #999; z-index: 20; }
+        
+        .time-separator { 
+            font-size: 3rem; 
+            font-weight: 900; 
+            color: var(--sage); 
+            line-height: 1; 
+            margin-bottom: 0.4rem;
+            opacity: 0.6;
+        }
+
+        .status-badge { font-size: 0.7rem; text-align: center; font-weight: 700; color: var(--ink-soft); padding: 0.4rem; background: rgba(0,0,0,0.03); border-radius: 2rem; margin-top: 0.5rem; }
+        
+        .delete-btn { position: absolute; top: 0.8rem; right: 0.8rem; background: rgba(0,0,0,0.04); border: none; cursor: pointer; width: 22px; height: 22px; border-radius: 50%; color: #bbb; z-index: 20; display: flex; align-items: center; justify-content: center; font-size: 10px; }
         .delete-btn:hover { background: #ff5f5f; color: white; }
-        .add-card { border: 2px dashed var(--sage-light); border-radius: 1.25rem; height: 215px; display: grid; place-items: center; cursor: pointer; color: var(--sage); font-weight: 800; transition: all 0.2s; }
+        
+        .add-card { border: 2px dashed var(--sage-light); border-radius: 1rem; min-height: 180px; display: grid; place-items: center; cursor: pointer; color: var(--sage); font-weight: 800; transition: all 0.2s; }
         .add-card:hover { background: var(--sage-pale); transform: scale(1.02); }
+        
         .loading-overlay { position: fixed; inset: 0; background: var(--parchment); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s; }
         .loading-overlay.hidden { opacity: 0; pointer-events: none; }
     </style>
@@ -141,7 +190,7 @@
             <input class="task-name" value="${t.name}" onfocus="activeEditingId='${t.id}'" onblur="handleNameBlur(this, '${t.id}')">
             <div class="time-display">
                 <input type="number" class="time-input" data-type="min" value="${mins}" onfocus="handleInputFocus(this, '${t.id}')" onblur="handleTimeBlur(this, '${t.id}', 'min')">
-                <span>:</span>
+                <span class="time-separator">:</span>
                 <input type="number" class="time-input" data-type="sec" value="${secs}" onfocus="handleInputFocus(this, '${t.id}')" onblur="handleTimeBlur(this, '${t.id}', 'sec')">
             </div>
             <div class="status-badge">${t.is_active ? '正在計時' : (isDone ? '已結束' : '點擊開始')}</div>
@@ -154,7 +203,7 @@
         card.querySelectorAll('input').forEach(input => {
             input.onkeydown = (e) => { 
                 if (e.key === 'Enter') {
-                    input.blur(); // 觸發 handleTimeBlur
+                    input.blur(); 
                 } 
             };
         });
@@ -179,8 +228,9 @@
         const timer = timers.find(t => t.id === id);
         if (!timer) return;
 
-        // 讀取當前卡片中兩個輸入框的最新值
         const card = document.querySelector(`.timer-card[data-id="${id}"]`);
+        if (!card) return;
+        
         const mVal = parseInt(card.querySelector('[data-type="min"]').value) || 0;
         const sVal = parseInt(card.querySelector('[data-type="sec"]').value) || 0;
 
@@ -193,12 +243,11 @@
 
         activeEditingId = null; 
         
-        // 核心修正：如果設定的時間大於 0，輸入完後直接觸發開始
         if (total > 0) {
             await toggleTimer(id); 
         } else {
             renderAll();
-            await db.from(CONFIG.TABLE).update({ remaining_seconds: 0, initial_seconds: 0, is_active: false }).eq('id', id);
+            await db.from(CONFIG.TABLE).update({ remaining_seconds: total, initial_seconds: total, is_active: false }).eq('id', id);
         }
     };
 
@@ -206,7 +255,6 @@
         const t = timers.find(x => x.id === id);
         if (!t) return;
 
-        // 如果是已結束狀態，點擊重設
         if (t.remaining_seconds <= 0 && !t.is_active && t.initial_seconds > 0) {
             t.remaining_seconds = 0; t.initial_seconds = 0; t.is_active = false;
             renderAll();
