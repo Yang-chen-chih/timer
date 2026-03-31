@@ -30,7 +30,6 @@
             padding-bottom: 6rem;
         }
 
-        /* — Ambient background — */
         body::before {
             content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
             background-image:
@@ -39,7 +38,6 @@
                 radial-gradient(ellipse 40% 40% at 50% 50%, rgba(212,131,10,0.04) 0%, transparent 70%);
         }
 
-        /* — Header — */
         header {
             position: relative; z-index: 20;
             padding: 1.75rem 2.5rem 0;
@@ -51,16 +49,11 @@
             letter-spacing: -0.03em;
         }
         .brand-title span { color: var(--sage); }
-        .brand-subtitle {
-            font-size: 0.75rem; color: var(--ink-faint); margin-top: 0.1rem;
-            letter-spacing: 0.05em; font-weight: 400;
-        }
         .sync-area { display: flex; align-items: center; gap: 6px; padding-bottom: 4px; }
         .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; transition: all 0.4s; }
         .sync-dot.synced { background: #6ab84a; box-shadow: 0 0 0 3px rgba(106,184,74,0.2); }
         .sync-label { font-size: 0.7rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.06em; }
 
-        /* — Upcoming tab bar — */
         .upcoming-bar {
             position: relative; z-index: 20;
             margin: 1.25rem 2.5rem 0;
@@ -83,9 +76,7 @@
             text-transform: uppercase; letter-spacing: 0.07em;
             white-space: nowrap; padding-left: 0.25rem;
         }
-        .upcoming-chips {
-            display: flex; gap: 0.5rem; flex-wrap: wrap; flex: 1;
-        }
+        .upcoming-chips { display: flex; gap: 0.5rem; flex-wrap: wrap; flex: 1; }
         .upcoming-chip {
             display: flex; align-items: center; gap: 6px;
             background: var(--sage-pale);
@@ -95,144 +86,230 @@
             font-size: 0.75rem; color: var(--ink-mid); font-weight: 700;
             transition: all 0.3s;
         }
-        .upcoming-chip.urgent {
-            background: var(--amber-pale);
-            border-color: rgba(212,131,10,0.3);
-            color: #7a4800;
-            animation: pulse-chip 1.2s ease-in-out infinite;
-        }
-        .upcoming-chip.critical {
-            background: var(--red-pale);
-            border-color: rgba(192,57,43,0.3);
-            color: #7a1a10;
-            animation: pulse-chip 0.7s ease-in-out infinite;
-        }
-        @keyframes pulse-chip {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.65; }
-        }
-        .chip-dot {
-            width: 6px; height: 6px; border-radius: 50%;
-            background: var(--sage); flex-shrink: 0;
-        }
+        .upcoming-chip.urgent { background: var(--amber-pale); border-color: rgba(212,131,10,0.3); color: #7a4800; animation: pulse-chip 1.2s ease-in-out infinite; }
+        .upcoming-chip.critical { background: var(--red-pale); border-color: rgba(192,57,43,0.3); color: #7a1a10; animation: pulse-chip 0.7s ease-in-out infinite; }
+        @keyframes pulse-chip { 0%, 100% { opacity: 1; } 50% { opacity: 0.65; } }
+        .chip-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--sage); flex-shrink: 0; }
         .chip-dot.urgent { background: var(--amber); }
         .chip-dot.critical { background: var(--red); }
         .chip-name { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .chip-time { font-family: 'Varela Round', sans-serif; font-size: 0.8rem; }
-        .upcoming-empty {
-            font-size: 0.8rem; color: var(--ink-faint);
-            padding-left: 0.25rem; font-style: italic;
-        }
+        .upcoming-empty { font-size: 0.8rem; color: var(--ink-faint); padding-left: 0.25rem; font-style: italic; }
 
-        /* — Grid — */
+        /* Stats strip */
+        .stats-strip {
+            position: relative; z-index: 15;
+            margin: 0 2.5rem;
+            display: flex; gap: 0.75rem;
+        }
+        .stat-pill {
+            background: var(--cream); border: 1px solid var(--card-border);
+            border-radius: 2rem; padding: 0.35rem 0.85rem;
+            display: flex; align-items: center; gap: 6px;
+            font-size: 0.72rem; color: var(--ink-soft); font-weight: 700;
+        }
+        .stat-pill-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sage-light); }
+        .stat-pill-dot.active { background: var(--sage); box-shadow: 0 0 0 2px rgba(122,158,90,0.2); }
+        .stat-pill-num { font-family: 'Varela Round', sans-serif; font-size: 0.85rem; color: var(--ink-mid); }
+
+        /* ===== GRID ===== */
         .grid-wrap {
             position: relative; z-index: 10;
             padding: 1.5rem 2.5rem;
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
             gap: 1.2rem;
+            align-items: start;
         }
 
-        /* — Timer Cards — */
+        /* ===== IDLE CARD — visually muted ===== */
         .timer-card {
             background: var(--cream);
-            border: 1.5px solid var(--card-border);
+            border: 1.5px solid rgba(122,158,90,0.12);
             border-radius: 1.1rem;
-            padding: 1.4rem 1.2rem 1.1rem;
-            box-shadow: var(--shadow-card);
-            transition: all 0.3s ease;
-            display: flex; flex-direction: column; gap: 0.4rem;
+            padding: 1.2rem 1.1rem 1rem;
+            box-shadow: 0 1px 4px rgba(28,39,18,0.04);
+            transition: all 0.35s ease;
+            display: flex; flex-direction: column; gap: 0.3rem;
             cursor: pointer; position: relative; overflow: hidden;
+            opacity: 0.7;
+            filter: saturate(0.5);
         }
-        .timer-card::before {
-            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-            background: transparent; border-radius: 3px 0 0 3px; transition: background 0.3s;
+        .timer-card:hover {
+            opacity: 0.9;
+            filter: saturate(0.8);
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-1px);
+            border-color: rgba(122,158,90,0.3);
         }
-        .timer-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); }
-        .timer-card.running {
-            border-color: rgba(122,158,90,0.45);
-            background: var(--white);
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-hover), 0 0 0 3px rgba(122,158,90,0.08);
-        }
-        .timer-card.running::before { background: linear-gradient(180deg, var(--sage-light) 0%, var(--sage) 100%); }
-        .timer-card.done {
-            border-color: rgba(212,131,10,0.5);
-            background: var(--amber-pale);
-            animation: shake 0.45s infinite alternate;
-        }
-        .timer-card.done::before { background: linear-gradient(180deg, #f5c842 0%, var(--amber) 100%); }
-        .timer-card.urgent-card { border-color: rgba(212,131,10,0.35); }
-        .timer-card.urgent-card::before { background: linear-gradient(180deg, #f5c842 0%, var(--amber) 100%); }
-        .timer-card.critical-card { border-color: rgba(192,57,43,0.35); }
-        .timer-card.critical-card::before { background: linear-gradient(180deg, #f5a0a0 0%, var(--red) 100%); }
 
+        /* ===== RUNNING CARD — vivid, prominent ===== */
+        .timer-card.running {
+            background: var(--white);
+            border: 2px solid rgba(122,158,90,0.55);
+            border-radius: 1.25rem;
+            padding: 1.4rem 1.3rem 1.2rem;
+            opacity: 1;
+            filter: saturate(1);
+            transform: translateY(-4px) scale(1.02);
+            box-shadow:
+                0 8px 36px rgba(28,39,18,0.13),
+                0 2px 8px rgba(28,39,18,0.07),
+                0 0 0 4px rgba(122,158,90,0.1),
+                inset 0 0 0 1px rgba(181,209,140,0.4);
+            z-index: 5;
+        }
+        .timer-card.running:hover {
+            transform: translateY(-6px) scale(1.02);
+            box-shadow:
+                0 12px 44px rgba(28,39,18,0.16),
+                0 3px 10px rgba(28,39,18,0.09),
+                0 0 0 5px rgba(122,158,90,0.12);
+        }
+
+        /* ===== DONE CARD ===== */
+        .timer-card.done {
+            border: 2px solid rgba(212,131,10,0.55);
+            background: var(--amber-pale);
+            opacity: 1;
+            filter: saturate(1);
+            transform: translateY(-2px);
+            animation: shake 0.45s infinite alternate;
+            box-shadow: 0 4px 20px rgba(212,131,10,0.2), 0 0 0 4px rgba(212,131,10,0.08);
+        }
         @keyframes shake {
             from { transform: rotate(-0.8deg) scale(1.01); }
             to   { transform: rotate(0.8deg) scale(1.01); }
         }
 
-        /* Progress ring behind card */
+        /* Urgency variants only for running cards */
+        .timer-card.running.urgent-card {
+            border-color: rgba(212,131,10,0.55);
+            box-shadow: 0 8px 36px rgba(212,131,10,0.15), 0 0 0 4px rgba(212,131,10,0.1);
+        }
+        .timer-card.running.critical-card {
+            border-color: rgba(192,57,43,0.55);
+            box-shadow: 0 8px 36px rgba(192,57,43,0.15), 0 0 0 4px rgba(192,57,43,0.1);
+        }
+
+        /* Left accent bar */
+        .timer-card::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+            background: transparent; border-radius: 3px 0 0 3px; transition: background 0.3s;
+        }
+        .timer-card.running::before { background: linear-gradient(180deg, var(--sage-light) 0%, var(--sage) 100%); }
+        .timer-card.done::before { background: linear-gradient(180deg, #f5c842 0%, var(--amber) 100%); }
+        .timer-card.running.urgent-card::before { background: linear-gradient(180deg, #f5c842 0%, var(--amber) 100%); }
+        .timer-card.running.critical-card::before { background: linear-gradient(180deg, #f5a0a0 0%, var(--red) 100%); }
+
+        /* Animated pulse ring (running only) */
+        @keyframes pulse-ring {
+            0%   { transform: scale(1);   opacity: 0.45; }
+            70%  { transform: scale(1.12); opacity: 0; }
+            100% { transform: scale(1);   opacity: 0; }
+        }
+        .pulse-ring {
+            position: absolute; inset: -6px; border-radius: 1.35rem;
+            border: 2px solid rgba(122,158,90,0.4);
+            pointer-events: none; display: none;
+            animation: pulse-ring 2s ease-out infinite;
+        }
+        .timer-card.running .pulse-ring { display: block; }
+        .timer-card.running.urgent-card .pulse-ring { border-color: rgba(212,131,10,0.4); animation-duration: 1.3s; }
+        .timer-card.running.critical-card .pulse-ring { border-color: rgba(192,57,43,0.45); animation-duration: 0.8s; }
+
+        /* Running label badge (top of running card) */
+        .running-badge {
+            display: none;
+            position: absolute; top: 0.65rem; left: 50%; transform: translateX(-50%);
+            background: linear-gradient(90deg, var(--sage-deep), var(--sage));
+            color: white; font-size: 0.6rem; font-weight: 900;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            padding: 2px 10px; border-radius: 2rem;
+            z-index: 10;
+            box-shadow: 0 2px 6px rgba(78,112,53,0.3);
+        }
+        .timer-card.running .running-badge { display: block; }
+        .timer-card.running.urgent-card .running-badge { background: linear-gradient(90deg, #b87400, var(--amber)); }
+        .timer-card.running.critical-card .running-badge { background: linear-gradient(90deg, #8b1a10, var(--red)); }
+
+        /* Progress ring */
         .progress-ring-wrap {
             position: absolute; top: 0.8rem; right: 0.8rem;
-            width: 28px; height: 28px; opacity: 0; transition: opacity 0.3s;
+            width: 32px; height: 32px; opacity: 0; transition: opacity 0.35s;
         }
         .timer-card.running .progress-ring-wrap { opacity: 1; }
-        .progress-ring-svg { transform: rotate(-90deg); }
         .progress-ring-bg { fill: none; stroke: var(--sage-pale); stroke-width: 3; }
         .progress-ring-fg { fill: none; stroke: var(--sage); stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset 0.8s linear; }
 
+        /* Task name */
         .task-name {
-            font-size: 0.95rem; font-weight: 700;
+            font-size: 0.88rem; font-weight: 700;
             border: none; background: transparent; outline: none;
-            color: var(--ink-mid); width: 82%;
+            color: var(--ink-soft); width: 78%;
             border-bottom: 2px solid transparent;
             padding-bottom: 1px;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, color 0.3s;
+            margin-top: 1.4rem;
         }
+        .timer-card.running .task-name { color: var(--ink-mid); font-size: 0.95rem; }
         .task-name:focus { border-bottom-color: var(--sage); }
         .timer-card.done .task-name { color: #7a4800; }
 
+        /* Time display */
         .time-display {
             display: flex; justify-content: center; align-items: center;
-            margin: 0.2rem 0;
+            margin: 0.1rem 0;
         }
         .time-input {
             font-family: 'Varela Round', sans-serif;
-            font-size: 3.6rem; font-weight: 900;
+            font-size: 3.0rem; font-weight: 900;
             width: 1.65em; padding: 0; text-align: center;
             border: none; background: transparent; outline: none;
-            color: var(--ink); border-radius: 0.4rem;
-            -moz-appearance: textfield; transition: background 0.15s, color 0.3s;
+            color: rgba(28,39,18,0.35);
+            border-radius: 0.4rem;
+            -moz-appearance: textfield; transition: background 0.15s, color 0.3s, font-size 0.3s;
         }
         .time-input::-webkit-outer-spin-button,
         .time-input::-webkit-inner-spin-button { -webkit-appearance: none; }
         .time-input:focus { background: var(--sage-pale); }
-        .timer-card.done .time-input { color: var(--amber); }
-        .timer-card.critical-card .time-input { color: var(--red); }
+
+        /* Running — big vivid numbers */
+        .timer-card.running .time-input {
+            font-size: 3.8rem;
+            color: var(--ink);
+        }
+        .timer-card.done .time-input { color: var(--amber); font-size: 3.0rem; }
+        .timer-card.running.critical-card .time-input { color: var(--red); }
+        .timer-card.running.urgent-card .time-input { color: var(--amber); }
 
         .time-separator {
-            font-size: 2.8rem; font-weight: 900; color: var(--sage);
-            line-height: 1; margin-bottom: 0.35rem; opacity: 0.55;
+            font-size: 2.6rem; font-weight: 900;
+            line-height: 1; margin-bottom: 0.35rem;
+            color: rgba(122,158,90,0.25);
+            transition: color 0.3s, font-size 0.3s;
         }
-        .timer-card.done .time-separator { color: var(--amber); opacity: 0.7; }
-        .timer-card.critical-card .time-separator { color: var(--red); opacity: 0.7; }
+        .timer-card.running .time-separator { font-size: 3.2rem; color: rgba(122,158,90,0.6); }
+        .timer-card.done .time-separator { color: rgba(212,131,10,0.5); }
+        .timer-card.running.critical-card .time-separator { color: rgba(192,57,43,0.5); }
+        .timer-card.running.urgent-card .time-separator { color: rgba(212,131,10,0.5); }
 
+        /* Status badge */
         .status-badge {
-            font-size: 0.68rem; text-align: center; font-weight: 700;
-            color: var(--ink-faint); padding: 0.3rem 0.5rem;
-            background: rgba(0,0,0,0.03); border-radius: 2rem;
-            margin-top: 0.3rem; text-transform: uppercase; letter-spacing: 0.06em;
+            font-size: 0.65rem; text-align: center; font-weight: 700;
+            color: rgba(155,176,127,0.7); padding: 0.25rem 0.5rem;
+            background: transparent; border-radius: 2rem;
+            margin-top: 0.1rem; text-transform: uppercase; letter-spacing: 0.07em;
             transition: all 0.3s;
         }
         .timer-card.running .status-badge { background: rgba(122,158,90,0.1); color: var(--sage-deep); }
-        .timer-card.done .status-badge { background: rgba(212,131,10,0.1); color: var(--amber); }
-        .timer-card.urgent-card .status-badge { background: rgba(212,131,10,0.08); color: #b87400; }
-        .timer-card.critical-card .status-badge { background: rgba(192,57,43,0.08); color: var(--red); }
+        .timer-card.done .status-badge { background: rgba(212,131,10,0.12); color: var(--amber); }
+        .timer-card.running.urgent-card .status-badge { background: rgba(212,131,10,0.1); color: #b87400; }
+        .timer-card.running.critical-card .status-badge { background: rgba(192,57,43,0.1); color: var(--red); }
 
         /* Delete button */
         .delete-btn {
-            position: absolute; top: 0.75rem; right: 0.75rem;
+            position: absolute; top: 0.65rem; right: 0.65rem;
             background: rgba(0,0,0,0.04); border: none; cursor: pointer;
             width: 22px; height: 22px; border-radius: 50%;
             color: #bbb; z-index: 20;
@@ -244,15 +321,15 @@
 
         /* Add card */
         .add-card {
-            border: 2px dashed var(--sage-light); border-radius: 1.1rem;
-            min-height: 170px; display: grid; place-items: center;
-            cursor: pointer; color: var(--sage); font-weight: 800;
-            font-size: 0.95rem; transition: all 0.2s;
-            letter-spacing: 0.02em;
+            border: 2px dashed rgba(122,158,90,0.3); border-radius: 1.1rem;
+            min-height: 150px; display: grid; place-items: center;
+            cursor: pointer; color: rgba(122,158,90,0.5); font-weight: 800;
+            font-size: 0.9rem; transition: all 0.2s;
+            letter-spacing: 0.02em; opacity: 0.7;
         }
-        .add-card:hover { background: var(--sage-pale); transform: scale(1.02); border-color: var(--sage); }
+        .add-card:hover { background: var(--sage-pale); transform: scale(1.02); border-color: var(--sage); opacity: 1; color: var(--sage); }
         .add-card-inner { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; }
-        .add-icon { font-size: 1.8rem; opacity: 0.5; }
+        .add-icon { font-size: 1.6rem; opacity: 0.5; }
 
         /* Loading */
         .loading-overlay {
@@ -270,21 +347,18 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .loader-text { color: var(--ink-soft); font-size: 0.85rem; }
 
-        /* Stats strip */
-        .stats-strip {
-            position: relative; z-index: 15;
-            margin: 0 2.5rem;
-            display: flex; gap: 0.75rem;
+        /* Section divider labels */
+        .section-label {
+            grid-column: 1 / -1;
+            font-size: 0.68rem; font-weight: 700; color: var(--ink-soft);
+            text-transform: uppercase; letter-spacing: 0.1em;
+            display: flex; align-items: center; gap: 0.6rem;
+            margin-top: 0.4rem;
         }
-        .stat-pill {
-            background: var(--cream); border: 1px solid var(--card-border);
-            border-radius: 2rem; padding: 0.35rem 0.85rem;
-            display: flex; align-items: center; gap: 6px;
-            font-size: 0.72rem; color: var(--ink-soft); font-weight: 700;
+        .section-label::after {
+            content: ''; flex: 1; height: 1px; background: rgba(122,158,90,0.15);
         }
-        .stat-pill-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sage-light); }
-        .stat-pill-dot.active { background: var(--sage); box-shadow: 0 0 0 2px rgba(122,158,90,0.2); }
-        .stat-pill-num { font-family: 'Varela Round', sans-serif; font-size: 0.85rem; color: var(--ink-mid); }
+        .section-label.idle-label { color: var(--ink-faint); margin-top: 0.8rem; }
     </style>
 </head>
 <body>
@@ -304,7 +378,6 @@
     </div>
 </header>
 
-<!-- Upcoming bar -->
 <div class="upcoming-bar" id="upcoming-bar">
     <span class="upcoming-label">即將完成</span>
     <div class="upcoming-chips" id="upcoming-chips">
@@ -312,7 +385,6 @@
     </div>
 </div>
 
-<!-- Stats strip -->
 <div class="stats-strip" id="stats-strip" style="margin-top:0.9rem;">
     <div class="stat-pill">
         <div class="stat-pill-dot active"></div>
@@ -356,17 +428,14 @@
         } catch(e) {}
     };
 
-    /* — Upcoming bar — */
     function updateUpcomingBar() {
         const chips = document.getElementById('upcoming-chips');
         const active = timers.filter(t => t.is_active && t.remaining_seconds > 0)
             .sort((a, b) => a.remaining_seconds - b.remaining_seconds);
-
         if (active.length === 0) {
             chips.innerHTML = '<span class="upcoming-empty">目前沒有進行中的計時</span>';
             return;
         }
-
         chips.innerHTML = active.map(t => {
             const s = t.remaining_seconds;
             const m = Math.floor(s / 60), sec = s % 60;
@@ -405,12 +474,28 @@
         const grid = document.getElementById('timer-grid');
         grid.innerHTML = '';
 
-        const sorted = [...timers].sort((a, b) =>
-            (b.is_active - a.is_active) || (a.remaining_seconds - b.remaining_seconds)
-        );
+        const running = timers.filter(t => t.is_active).sort((a, b) => a.remaining_seconds - b.remaining_seconds);
+        const idle = timers.filter(t => !t.is_active).sort((a, b) => (b.initial_seconds > 0 && a.initial_seconds === 0) ? 1 : 0);
 
-        sorted.forEach(t => grid.appendChild(createCard(t)));
+        // Running section label
+        if (running.length > 0) {
+            const lbl = document.createElement('div');
+            lbl.className = 'section-label';
+            lbl.innerHTML = `▶ 計時中（${running.length}）`;
+            grid.appendChild(lbl);
+            running.forEach(t => grid.appendChild(createCard(t)));
+        }
 
+        // Idle section label
+        if (idle.length > 0) {
+            const lbl = document.createElement('div');
+            lbl.className = 'section-label idle-label';
+            lbl.innerHTML = `待機（${idle.length}）`;
+            grid.appendChild(lbl);
+            idle.forEach(t => grid.appendChild(createCard(t)));
+        }
+
+        // Add button
         const addBtn = document.createElement('div');
         addBtn.className = 'add-card';
         addBtn.innerHTML = `<div class="add-card-inner"><div class="add-icon">＋</div><span>新增任務</span></div>`;
@@ -441,11 +526,10 @@
         const mins = String(Math.floor(t.remaining_seconds / 60)).padStart(2, '0');
         const secs = String(t.remaining_seconds % 60).padStart(2, '0');
 
-        /* Progress ring */
         const progress = t.initial_seconds > 0
             ? Math.max(0, Math.min(1, t.remaining_seconds / t.initial_seconds))
             : 0;
-        const r = 11; const circ = 2 * Math.PI * r;
+        const r = 12; const circ = 2 * Math.PI * r;
         const offset = circ * (1 - progress);
         const ringColor = isCritical ? '#c0392b' : isUrgent ? '#d4830a' : '#7a9e5a';
 
@@ -453,11 +537,16 @@
         if (t.is_active) statusText = isCritical ? '即將完成' : isUrgent ? '快要結束' : '正在計時';
         if (isDone) statusText = '已結束';
 
+        let badgeLabel = '';
+        if (t.is_active) badgeLabel = isCritical ? '🔴 即將完成' : isUrgent ? '🟡 快要結束' : '▶ 計時中';
+
         card.innerHTML = `
+            <div class="pulse-ring"></div>
+            ${t.is_active ? `<div class="running-badge">${badgeLabel}</div>` : ''}
             <button class="delete-btn" onclick="event.stopPropagation(); deleteTimer('${t.id}')">✕</button>
-            <svg class="progress-ring-wrap" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
-                <circle class="progress-ring-bg" cx="14" cy="14" r="${r}"/>
-                <circle class="progress-ring-fg" cx="14" cy="14" r="${r}"
+            <svg class="progress-ring-wrap" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="transform:rotate(-90deg)">
+                <circle class="progress-ring-bg" cx="16" cy="16" r="${r}"/>
+                <circle class="progress-ring-fg" cx="16" cy="16" r="${r}"
                     stroke="${ringColor}"
                     stroke-dasharray="${circ.toFixed(2)}"
                     stroke-dashoffset="${offset.toFixed(2)}"/>
@@ -555,7 +644,6 @@
         renderAll();
     }).subscribe();
 
-    /* — Tick loop — */
     setInterval(() => {
         const now = Date.now();
         let finished = false;
@@ -571,7 +659,6 @@
                     const prevSec = t.remaining_seconds;
                     t.remaining_seconds = diff;
                     needsUpcomingUpdate = true;
-                    /* Urgency threshold crossed → re-render for color change */
                     if ((prevSec === 61 && diff === 60) || (prevSec === 21 && diff === 20)) {
                         finished = true;
                     } else {
@@ -592,8 +679,7 @@
         const sInput = card.querySelector('[data-type="sec"]');
         if (mInput) mInput.value = String(Math.floor(t.remaining_seconds / 60)).padStart(2, '0');
         if (sInput) sInput.value = String(t.remaining_seconds % 60).padStart(2, '0');
-        /* Update ring */
-        const r = 11; const circ = 2 * Math.PI * r;
+        const r = 12; const circ = 2 * Math.PI * r;
         const progress = t.initial_seconds > 0 ? Math.max(0, t.remaining_seconds / t.initial_seconds) : 0;
         const ring = card.querySelector('.progress-ring-fg');
         if (ring) {
@@ -602,7 +688,6 @@
             const isUrgent = t.remaining_seconds <= 60 && !isCritical;
             ring.setAttribute('stroke', isCritical ? '#c0392b' : isUrgent ? '#d4830a' : '#7a9e5a');
         }
-        /* Update status badge text */
         const badge = card.querySelector('.status-badge');
         if (badge) {
             const isCritical = t.remaining_seconds <= 20;
@@ -614,17 +699,12 @@
     function updateTabTitle() {
         const active = timers.filter(t => t.is_active && t.remaining_seconds > 0)
             .sort((a, b) => a.remaining_seconds - b.remaining_seconds);
-        if (active.length === 0) {
-            document.title = '計時器';
-            return;
-        }
+        if (active.length === 0) { document.title = '計時器'; return; }
         const t = active[0];
         const m = Math.floor(t.remaining_seconds / 60);
         const s = String(t.remaining_seconds % 60).padStart(2, '0');
-        const timeStr = `${m}:${s}`;
         const icon = t.remaining_seconds <= 20 ? '🔴' : t.remaining_seconds <= 60 ? '🟡' : '🟢';
-        const name = (t.name || '任務').substring(0, 8);
-        document.title = `${icon} ${timeStr} ${name}`;
+        document.title = `${icon} ${m}:${s} ${(t.name || '任務').substring(0, 8)}`;
     }
 
     fetchTimers();
