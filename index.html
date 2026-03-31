@@ -421,6 +421,7 @@
 
         updateUpcomingBar();
         updateStats();
+        updateTabTitle();
     };
 
     const createCard = (t) => {
@@ -580,7 +581,7 @@
             }
         });
         if (finished) renderAll();
-        else if (needsUpcomingUpdate) updateUpcomingBar();
+        else if (needsUpcomingUpdate) { updateUpcomingBar(); updateTabTitle(); }
     }, 200);
 
     function updateCardDisplay(t) {
@@ -608,6 +609,22 @@
             const isUrgent = t.remaining_seconds <= 60 && !isCritical;
             badge.textContent = isCritical ? '即將完成' : isUrgent ? '快要結束' : '正在計時';
         }
+    }
+
+    function updateTabTitle() {
+        const active = timers.filter(t => t.is_active && t.remaining_seconds > 0)
+            .sort((a, b) => a.remaining_seconds - b.remaining_seconds);
+        if (active.length === 0) {
+            document.title = '計時器';
+            return;
+        }
+        const t = active[0];
+        const m = Math.floor(t.remaining_seconds / 60);
+        const s = String(t.remaining_seconds % 60).padStart(2, '0');
+        const timeStr = `${m}:${s}`;
+        const icon = t.remaining_seconds <= 20 ? '🔴' : t.remaining_seconds <= 60 ? '🟡' : '🟢';
+        const name = (t.name || '任務').substring(0, 8);
+        document.title = `${icon} ${timeStr} ${name}`;
     }
 
     fetchTimers();
