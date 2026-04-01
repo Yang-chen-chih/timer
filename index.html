@@ -161,6 +161,10 @@ header{position:relative;z-index:20;padding:1.75rem 2.5rem 0;display:flex;align-
   text-transform:uppercase;letter-spacing:.1em;display:flex;align-items:center;gap:.6rem;margin-top:.4rem}
 .section-label::after{content:'';flex:1;height:1px;background:rgba(122,158,90,.15)}
 .section-label.idle-label{color:var(--ink-f);margin-top:.8rem}
+
+.error-toast{position:fixed;bottom:2rem;right:2rem;background:#c0392b;color:#fff;padding:1rem 1.5rem;
+  border-radius:.5rem;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:200;animation:slideIn .3s ease}
+@keyframes slideIn{from{transform:translateX(400px);opacity:0}to{transform:translateX(0);opacity:1}}
 </style>
 </head>
 <body>
@@ -205,7 +209,7 @@ const TABLE  = 'timers';
 const CIRC   = 2 * Math.PI * 12;
 
 const db = supabase.createClient(DB_URL, DB_KEY);
-let timers = [], activeEditingId = null, rafId = null;
+let timers = [], activeEditingId = null, rafId = null, subscriptionReady = false;
 const lastSec = {};
 
 // ─── 工具函式 ──────────────────────────────────────────────────────────────
@@ -240,6 +244,15 @@ function playBeep() {
   } catch(e) {}
 }
 
+// ─── 錯誤提示 ──────────────────────────────────────────────────────────────
+function showError(msg) {
+  const toast = document.createElement('div');
+  toast.className = 'error-toast';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
 // ─── UI 刷新 ───────────────────────────────────────────────────────────────
 function updateUpcomingBar() {
   const t = now();
@@ -272,14 +285,20 @@ function refreshUI() { updateUpcomingBar(); updateStats(); updateTabTitle(); }
 
 // ─── 載入資料 ──────────────────────────────────────────────────────────────
 async function fetchTimers() {
-  const { data } = await db.from(TABLE).select('*').order('created_at', { ascending: true });
-  timers = (data || []).map(t => ({ ...t, endPerf: calcEnd(t) }));
-  renderAll();
-  document.getElementById('loader').classList.add('hidden');
-  document.getElementById('sync-dot').className = 'sync-dot synced';
-  document.getElementById('sync-label').textContent = '已同步';
-  if (rafId) cancelAnimationFrame(rafId);
-  rafLoop();
+  try {
+    const { data, error } = await db.from(TABLE).select('*').order('created_at', { ascending: true });
+    if (error) throw error;
+    timers = (data || []).map(t => ({ ...t, endPerf: calcEnd(t) }));
+    renderAll();
+    document.getElementById('loader').classList.add('hidden');
+    document.getElementById('sync-dot').className = 'sync-dot synced';
+    document.getElementById('sync-label').textContent = '已同步';
+    if (rafId) cancelAnimationFrame(rafId);
+    rafLoop();
+  } catch (err) {
+    console.error('載入失敗:', err);
+    showError('無法載入計時器');
+  }
 }
 
 // ─── 渲染 ──────────────────────────────────────────────────────────────────
@@ -303,7 +322,24 @@ function renderAll() {
   const add = document.createElement('div');
   add.className = 'add-card';
   add.innerHTML = '<div class="add-card-inner"><div class="add-icon">＋</div><span>新增任務</span></div>';
-  add.onclick = () => db.from(TABLE).insert([{ name:'新任務', initial_seconds:0, remaining_seconds:0, is_active:false }]);
+  add.onclick = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      const { error } = await db.from(TABLE).insert([{ 
+        name: '新任務', 
+        initial_seconds: 0, 
+        remaining_seconds: 0, 
+        is_active: false 
+      }]);
+      if (error) throw error;
+      // 等待訂閱推送更新
+      await new Promise(r => setTimeout(r, 200));
+    } catch (err) {
+      console.error('新增失敗:', err);
+      showError('新增計時器失敗');
+    }
+  };
   grid.appendChild(add);
 
   refreshUI();
@@ -363,7 +399,7 @@ function rafLoop() {
       Object.assign(x, { remaining_seconds:0, is_active:false, endPerf:null });
       delete lastSec[x.id];
       playBeep(); needFull = true;
-      db.from(TABLE).update({ remaining_seconds:0, is_active:false }).eq('id', x.id);
+      db.from(TABLE).update({ remaining_seconds:0, is_active:false }).eq('id', x.id).catch(e => console.error('更新失敗:', e));
       return;
     }
 
@@ -413,8 +449,14 @@ async function handleNameBlur(el, id) {
   const t = timers.find(x => x.id === id);
   if (t) t.name = el.value;
   activeEditingId = null;
-  await db.from(TABLE).update({ name: el.value }).eq('id', id);
-  renderAll();
+  try {
+    const { error } = await db.from(TABLE).update({ name: el.value }).eq('id', id);
+    if (error) throw error;
+    renderAll();
+  } catch (err) {
+    console.error('更新名稱失敗:', err);
+    showError('無法更新任務名稱');
+  }
 }
 
 async function handleTimeBlur(el, id) {
@@ -427,11 +469,18 @@ async function handleTimeBlur(el, id) {
   const total = Math.min(99, m) * 60 + Math.min(59, s);
   Object.assign(t, { remaining_seconds:total, initial_seconds:total, is_active:false, endPerf:null });
   activeEditingId = null;
-  if (total > 0) {
-    await toggleTimer(id);
-  } else {
-    renderAll();
-    await db.from(TABLE).update({ remaining_seconds:0, initial_seconds:0, is_active:false }).eq('id', id);
+  try {
+    if (total > 0) {
+      await db.from(TABLE).update({ remaining_seconds:total, initial_seconds:total, is_active:false }).eq('id', id);
+      await toggleTimer(id);
+    } else {
+      const { error } = await db.from(TABLE).update({ remaining_seconds:0, initial_seconds:0, is_active:false }).eq('id', id);
+      if (error) throw error;
+      renderAll();
+    }
+  } catch (err) {
+    console.error('更新時間失敗:', err);
+    showError('無法更新計時器時間');
   }
 }
 
@@ -441,7 +490,12 @@ async function toggleTimer(id) {
   if (t.remaining_seconds <= 0 && !t.is_active && t.initial_seconds > 0) {
     Object.assign(t, { remaining_seconds:0, initial_seconds:0, is_active:false, endPerf:null });
     delete lastSec[id]; renderAll();
-    await db.from(TABLE).update({ remaining_seconds:0, initial_seconds:0, is_active:false }).eq('id', id);
+    try {
+      const { error } = await db.from(TABLE).update({ remaining_seconds:0, initial_seconds:0, is_active:false }).eq('id', id);
+      if (error) throw error;
+    } catch (err) {
+      console.error('重置失敗:', err);
+    }
     return;
   }
   if (t.remaining_seconds <= 0) return;
@@ -449,40 +503,60 @@ async function toggleTimer(id) {
   t.endPerf = t.is_active ? now() + t.remaining_seconds * 1000 : null;
   if (!t.is_active) delete lastSec[id];
   renderAll();
-  await db.from(TABLE).update({ is_active:t.is_active, remaining_seconds:t.remaining_seconds, initial_seconds:t.initial_seconds }).eq('id', id);
+  try {
+    const { error } = await db.from(TABLE).update({ is_active:t.is_active, remaining_seconds:t.remaining_seconds, initial_seconds:t.initial_seconds }).eq('id', id);
+    if (error) throw error;
+  } catch (err) {
+    console.error('切換失敗:', err);
+    showError('無法切換計時器狀態');
+  }
 }
 
 async function deleteTimer(id) {
-  await db.from(TABLE).delete().eq('id', id);
+  try {
+    const { error } = await db.from(TABLE).delete().eq('id', id);
+    if (error) throw error;
+  } catch (err) {
+    console.error('刪除失敗:', err);
+    showError('無法刪除計時器');
+  }
 }
 
 // ─── 即時同步 ──────────────────────────────────────────────────────────────
-db.channel('any').on('postgres_changes', { event:'*', schema:'public', table:TABLE }, p => {
-  if (activeEditingId) return;
-  if (p.eventType === 'INSERT') {
-    timers.push({ ...p.new, endPerf: null });
-  } else if (p.eventType === 'DELETE') {
-    timers = timers.filter(x => x.id !== p.old.id);
-    delete lastSec[p.old.id];
-  } else if (p.eventType === 'UPDATE') {
-    const t = timers.find(x => x.id === p.new.id);
-    if (t) {
-      const wasActive = t.is_active;
-      Object.assign(t, { name:p.new.name, remaining_seconds:p.new.remaining_seconds,
-        initial_seconds:p.new.initial_seconds, is_active:p.new.is_active });
-      if (!wasActive && t.is_active) {
-        t.endPerf = now() + t.remaining_seconds * 1000;
-      } else if (!t.is_active) {
-        t.endPerf = null; delete lastSec[t.id];
-      } else if (t.endPerf) {
-        if (Math.abs(Math.ceil((t.endPerf - now()) / 1000) - p.new.remaining_seconds) > 2)
-          t.endPerf = now() + p.new.remaining_seconds * 1000;
+function setupRealtimeSubscription() {
+  db.channel('any').on('postgres_changes', { event:'*', schema:'public', table:TABLE }, p => {
+    if (activeEditingId) return;
+    if (p.eventType === 'INSERT') {
+      timers.push({ ...p.new, endPerf: null });
+    } else if (p.eventType === 'DELETE') {
+      timers = timers.filter(x => x.id !== p.old.id);
+      delete lastSec[p.old.id];
+    } else if (p.eventType === 'UPDATE') {
+      const t = timers.find(x => x.id === p.new.id);
+      if (t) {
+        const wasActive = t.is_active;
+        Object.assign(t, { name:p.new.name, remaining_seconds:p.new.remaining_seconds,
+          initial_seconds:p.new.initial_seconds, is_active:p.new.is_active });
+        if (!wasActive && t.is_active) {
+          t.endPerf = now() + t.remaining_seconds * 1000;
+        } else if (!t.is_active) {
+          t.endPerf = null; delete lastSec[t.id];
+        } else if (t.endPerf) {
+          if (Math.abs(Math.ceil((t.endPerf - now()) / 1000) - p.new.remaining_seconds) > 2)
+            t.endPerf = now() + p.new.remaining_seconds * 1000;
+        }
       }
     }
-  }
-  renderAll();
-}).subscribe();
+    renderAll();
+  }).subscribe((status) => {
+    if (status === 'SUBSCRIBED') {
+      subscriptionReady = true;
+    }
+  });
+}
 
+// ─── 初始化 ──────────────────────────────────────────────────────────────────
+setupRealtimeSubscription();
 fetchTimers();
 </script>
 </body>
