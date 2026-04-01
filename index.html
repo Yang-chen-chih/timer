@@ -266,8 +266,6 @@
         .timer-card.running.critical-card .time-separator { color: rgba(192,57,43,0.5); }
         .timer-card.running.urgent-card .time-separator { color: rgba(212,131,10,0.5); }
 
-
-
         .status-badge {
             font-size: 0.65rem; text-align: center; font-weight: 700;
             color: rgba(155,176,127,0.7); padding: 0.25rem 0.5rem;
@@ -431,7 +429,6 @@
         const { data } = await db.from(CONFIG.TABLE).select('*').order('created_at', { ascending: true });
         timers = (data || []).map(t => ({
             ...t,
-            // endPerf：使用 performance.now() 基準的絕對截止點，精度 < 1ms
             endPerf: t.is_active ? performance.now() + (t.remaining_seconds * 1000) : null
         }));
         renderAll();
@@ -475,7 +472,7 @@
 
         updateUpcomingBar();
         updateStats();
-        updateTabTitle();
+        updateTabTitle(); // ✅ 修正：renderAll 後同步更新 Tab 標題
     };
 
     // ─── 建立卡片 DOM ──────────────────────────────────────────────────────────
@@ -547,9 +544,7 @@
     };
 
     // ─── RAF 精確更新迴圈 ───────────────────────────────────────────────────────
-    // 使用 requestAnimationFrame（~60fps，與螢幕垂直同步）
-    // 不再用 setInterval，消除 timer drift
-    let lastRenderSec = {}; // id -> last displayed second (for whole-second re-render trigger)
+    let lastRenderSec = {};
 
     function startRAF() {
         if (rafId) cancelAnimationFrame(rafId);
@@ -566,7 +561,6 @@
             const msLeft = t.endPerf - now;
 
             if (msLeft <= 0) {
-                // 計時結束
                 t.remaining_seconds = 0;
                 t.is_active = false;
                 t.endPerf = null;
@@ -577,16 +571,13 @@
                 return;
             }
 
-            // 當前應顯示的秒數（向上取整，讓 1 秒整時跳到 0 而非停在 1）
             const secsNow = Math.ceil(msLeft / 1000);
             const lastSec = lastRenderSec[t.id];
 
-            // 跨越秒邊界或第一次：同步 remaining_seconds 並偵測是否需全刷
             if (lastSec !== secsNow) {
                 lastRenderSec[t.id] = secsNow;
                 t.remaining_seconds = secsNow;
 
-                // urgency 等級改變 → 需要全刷卡片
                 const wasUrgent = lastSec !== undefined && lastSec <= 60 && lastSec > 20;
                 const wasCritical = lastSec !== undefined && lastSec <= 20;
                 const isUrgent = secsNow <= 60 && secsNow > 20;
@@ -597,20 +588,18 @@
                     updateCardDisplay(t, msLeft);
                 }
             } else {
-                // 同一秒內：進度環平滑更新
                 updateCardRing(t, msLeft);
             }
         });
 
         if (needFullRender) {
-            renderAll();
+            renderAll(); // ✅ renderAll 內已含 updateTabTitle，無需重複呼叫
         } else {
             updateUpcomingBar();
             updateTabTitle();
         }
     }
 
-    // 更新卡片的分:秒 + 圓環（整秒跳變時呼叫）
     function updateCardDisplay(t, msLeft) {
         if (activeEditingId === t.id) return;
         const card = document.querySelector(`.timer-card[data-id="${t.id}"]`);
@@ -624,7 +613,6 @@
 
         updateCardRing(t, msLeft);
 
-        // 狀態文字
         const badge = card.querySelector('.status-badge');
         if (badge) {
             const isCritical = msLeft <= 20000;
@@ -633,7 +621,6 @@
         }
     }
 
-    // 平滑更新進度環（60fps）
     function updateCardRing(t, msLeft) {
         if (activeEditingId === t.id) return;
         const card = document.querySelector(`.timer-card[data-id="${t.id}"]`);
@@ -709,7 +696,6 @@
         }
         if (t.remaining_seconds <= 0) return;
         t.is_active = !t.is_active;
-        // 以 performance.now() 精確設定截止點
         t.endPerf = t.is_active ? performance.now() + (t.remaining_seconds * 1000) : null;
         if (!t.is_active) delete lastRenderSec[id];
         renderAll();
@@ -744,14 +730,12 @@
                     initial_seconds: p.new.initial_seconds,
                     is_active: p.new.is_active
                 });
-                // 重新計算 endPerf，避免跨裝置時間偏差（只在狀態改變時重置）
                 if (!wasActive && t.is_active) {
                     t.endPerf = performance.now() + (t.remaining_seconds * 1000);
                 } else if (!t.is_active) {
                     t.endPerf = null;
                     delete lastRenderSec[t.id];
                 }
-                // 若同步過來的 remaining_seconds 與本地差 > 2秒，修正截止點
                 if (t.is_active && t.endPerf) {
                     const localSecs = Math.ceil((t.endPerf - performance.now()) / 1000);
                     if (Math.abs(localSecs - p.new.remaining_seconds) > 2) {
