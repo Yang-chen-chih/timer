@@ -273,12 +273,26 @@ function updateStats() {
   document.getElementById('stat-total').textContent = timers.length;
 }
 
+// ── 修正：用獨立的上次標題秒數追蹤，確保每秒都更新 ──
+let lastTitleSec = -1;
 function updateTabTitle() {
   const t = now();
-  const active = timers.filter(x => x.is_active && x.endPerf > t).sort((a, b) => a.endPerf - b.endPerf);
-  if (!active.length) { document.title = '計時器'; return; }
-  const x = active[0], ms = x.endPerf - t, s = Math.ceil(ms / 1000);
-  document.title = `${ms<=20000?'🔴':ms<=60000?'🟡':'🟢'} ${Math.floor(s/60)}:${pad2(s%60)} ${(x.name||'任務').substring(0,8)}`;
+  const active = timers.filter(x => x.is_active && x.endPerf && x.endPerf > t)
+                       .sort((a, b) => a.endPerf - b.endPerf);
+  if (!active.length) {
+    if (document.title !== '計時器') {
+      document.title = '計時器';
+      lastTitleSec = -1;
+    }
+    return;
+  }
+  const x = active[0], ms = x.endPerf - t;
+  const s = Math.ceil(ms / 1000);
+  // 只要秒數有變就更新，不用每幀都寫 DOM
+  if (s !== lastTitleSec) {
+    lastTitleSec = s;
+    document.title = `${ms<=20000?'🔴':ms<=60000?'🟡':'🟢'} ${Math.floor(s/60)}:${pad2(s%60)} ${(x.name||'任務').substring(0,8)}`;
+  }
 }
 
 function refreshUI() { updateUpcomingBar(); updateStats(); updateTabTitle(); }
@@ -333,7 +347,6 @@ function renderAll() {
         is_active: false 
       }]);
       if (error) throw error;
-      // 等待訂閱推送更新
       await new Promise(r => setTimeout(r, 200));
     } catch (err) {
       console.error('新增失敗:', err);
@@ -388,6 +401,10 @@ function createCard(t) {
 // ─── RAF 迴圈 ───────────────────────────────────────────────────────────────
 function rafLoop() {
   rafId = requestAnimationFrame(rafLoop);
+
+  // ★ 修正：每幀開頭無條件更新 tab title，不依賴任何條件分支
+  updateTabTitle();
+
   const t = now();
   let needFull = false;
 
@@ -417,7 +434,7 @@ function rafLoop() {
     }
   });
 
-  needFull ? renderAll() : refreshUI();
+  if (needFull) renderAll(); else { updateUpcomingBar(); updateStats(); }
 }
 
 function updateCardDisplay(t, ms) {
