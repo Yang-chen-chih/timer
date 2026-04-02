@@ -80,7 +80,7 @@ header{padding:1.75rem 2.5rem 0;display:flex;align-items:flex-end;justify-conten
 
 <script>
 const DB_URL = 'https://zhcahednvdamivzlwziz.supabase.co';
-const DB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoY2FoZWRudmRhbWl2emx3eml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMTM4MTIsImV4cCI6MjA4OTg4OTgxMn0.W1R1dddjcP28QKqECH4bELwMq3eSWCB0lJUMLtzQp04';
+const DB_KEY = 'YOUR_SUPABASE_KEY';
 const TABLE  = 'timers';
 const db = supabase.createClient(DB_URL, DB_KEY);
 let timers = [], activeId = null;
@@ -89,60 +89,26 @@ let audioCtx = null;
 const $ = id => document.getElementById(id);
 const pad = n => String(n).padStart(2, '0');
 
-// 初始化音效
 function playBeep() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') audioCtx.resume();
-  [880, 1100].forEach((f, i) => {
+  [880,1100].forEach((f,i)=>{
     const o = audioCtx.createOscillator(), g = audioCtx.createGain();
     o.connect(g); g.connect(audioCtx.destination);
-    o.frequency.value = f;
-    g.gain.setTargetAtTime(0.3, audioCtx.currentTime + i*0.1, 0.05);
-    o.start(audioCtx.currentTime + i*0.1); o.stop(audioCtx.currentTime + i*0.1 + 0.1);
+    o.frequency.value=f;
+    g.gain.setTargetAtTime(0.3, audioCtx.currentTime+i*0.1,0.05);
+    o.start(audioCtx.currentTime+i*0.1);
+    o.stop(audioCtx.currentTime+i*0.1+0.1);
   });
 }
 
-// 同步資料
 async function sync() {
   const { data } = await db.from(TABLE).select('*').order('created_at');
-  timers = data.map(t => ({ ...t, end: t.is_active ? new Date(t.started_at).getTime() + t.initial_seconds * 1000 : null }));
+  timers = data.map(t => ({ ...t, end: t.is_active ? new Date(t.started_at).getTime() + t.initial_seconds*1000 : null }));
   render();
   $('loader').classList.add('hidden');
-  $('sync-dot').className = 'sync-dot synced';
-  $('sync-label').textContent = '已同步';
-}
-
-function render() {
-  if (activeId) return;
-  const grid = $('timer-grid');
-  grid.innerHTML = '';
-  
-  timers.forEach(t => {
-    const now = Date.now();
-    const ms = t.is_active ? Math.max(0, t.end - now) : t.remaining_seconds * 1000;
-    const sec = Math.ceil(ms / 1000);
-    const done = !t.is_active && t.remaining_seconds <= 0 && t.initial_seconds > 0;
-    
-    const card = document.createElement('div');
-    card.className = `timer-card ${t.is_active ? 'running' : ''} ${done ? 'done' : ''}`;
-    card.innerHTML = `
-      <button class="delete-btn" onclick="event.stopPropagation();del('${t.id}')">✕</button>
-      <input class="task-name" value="${t.name}" onblur="upd('${t.id}', {name:this.value})">
-      <div class="time-display">
-        <input type="number" class="time-input" value="${pad(Math.floor(sec/60))}" onfocus="activeId='${t.id}'" onblur="setTime('${t.id}', this.value, 1)">
-        <span>:</span>
-        <input type="number" class="time-input" value="${pad(sec%60)}" onfocus="activeId='${t.id}'" onblur="setTime('${t.id}', this.value, 0)">
-      </div>
-    `;
-    card.onclick = (e) => { if(e.target.tagName !== 'INPUT') toggle(t); };
-    grid.appendChild(card);
-  });
-
-  const add = document.createElement('div');
-  add.className = 'add-card';
-  add.innerHTML = '＋ 新增任務';
-  add.onclick = async () => { await db.from(TABLE).insert([{name:'新任務', initial_seconds:0, remaining_seconds:0}]); sync(); };
-  grid.appendChild(add);
+  $('sync-dot').className='sync-dot synced';
+  $('sync-label').textContent='已同步';
 }
 
 async function upd(id, obj) {
@@ -153,34 +119,75 @@ async function upd(id, obj) {
 
 async function del(id) { await db.from(TABLE).delete().eq('id', id); sync(); }
 
-async function setTime(id, val, isMin) {
-  const t = timers.find(x => x.id === id);
+async function setTime(id, val, isMin){
+  const t = timers.find(x=>x.id===id);
   const m = isMin ? parseInt(val) : Math.floor(t.remaining_seconds/60);
   const s = isMin ? t.remaining_seconds%60 : parseInt(val);
-  const total = m * 60 + s;
-  await upd(id, { initial_seconds: total, remaining_seconds: total, is_active: false });
+  const total = m*60+s;
+  await upd(id,{initial_seconds:total,remaining_seconds:total,is_active:false});
 }
 
-async function toggle(t) {
-  if (t.remaining_seconds <= 0 && !t.is_active) return upd(t.id, {remaining_seconds:0, initial_seconds:0});
+async function toggle(t){
+  if(t.remaining_seconds<=0 && !t.is_active) return upd(t.id,{remaining_seconds:0,initial_seconds:0});
   const act = !t.is_active;
-  await upd(t.id, { is_active: act, started_at: act ? new Date().toISOString() : null });
+  await upd(t.id,{is_active:act,started_at:act?new Date().toISOString():null});
 }
 
-// 核心迴圈
-setInterval(() => {
-  const now = Date.now();
-  timers.forEach(t => {
-    if (t.is_active && t.end <= now) {
+function render() {
+  if(activeId) return;
+  const grid = $('timer-grid');
+  grid.innerHTML='';
+  timers.forEach(t=>{
+    const nowTime=Date.now();
+    const ms = t.is_active ? Math.max(0,t.end-nowTime) : t.remaining_seconds*1000;
+    const sec = Math.ceil(ms/1000);
+    const done = !t.is_active && t.remaining_seconds<=0 && t.initial_seconds>0;
+
+    const card = document.createElement('div');
+    card.className=`timer-card ${t.is_active?'running':''} ${done?'done':''}`;
+    card.innerHTML=`
+      <button class="delete-btn" onclick="event.stopPropagation();del('${t.id}')">✕</button>
+      <input class="task-name" value="${t.name}" onblur="upd('${t.id}',{name:this.value})">
+      <div class="time-display">
+        <input type="number" class="time-input" value="${pad(Math.floor(sec/60))}"
+          onfocus="activeId='${t.id}'"
+          onblur="setTime('${t.id}', this.value, 1)"
+          onkeydown="if(event.key==='Enter'){setTime('${t.id}', this.value, 1).then(()=>toggle(t)); activeId=null;}">
+        <span>:</span>
+        <input type="number" class="time-input" value="${pad(sec%60)}"
+          onfocus="activeId='${t.id}'"
+          onblur="setTime('${t.id}', this.value, 0)"
+          onkeydown="if(event.key==='Enter'){setTime('${t.id}', this.value, 0).then(()=>toggle(t)); activeId=null;}">
+      </div>
+    `;
+    card.onclick = e=>{if(e.target.tagName!=='INPUT') toggle(t)};
+    grid.appendChild(card);
+  });
+
+  const add = document.createElement('div');
+  add.className='add-card';
+  add.innerHTML='＋ 新增任務';
+  add.onclick = async ()=>{
+    await db.from(TABLE).insert([{name:'新任務',initial_seconds:0,remaining_seconds:0}]);
+    sync();
+  };
+  grid.appendChild(add);
+}
+
+setInterval(()=>{
+  const nowTime=Date.now();
+  timers.forEach(t=>{
+    if(t.is_active && t.end<=nowTime){
       playBeep();
-      upd(t.id, { is_active: false, remaining_seconds: 0, started_at: null });
+      upd(t.id,{is_active:false,remaining_seconds:0,started_at:null});
     }
   });
-  if (!activeId) render();
-}, 1000);
+  if(!activeId) render();
+},1000);
 
-db.channel('any').on('postgres_changes', {event:'*', schema:'public', table:TABLE}, sync).subscribe();
+db.channel('any').on('postgres_changes',{event:'*',schema:'public',table:TABLE},sync).subscribe();
 sync();
 </script>
+
 </body>
 </html>
