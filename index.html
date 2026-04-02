@@ -6,144 +6,196 @@
 <title>計時器</title>
 <link rel="icon" href="下載4.jpg" type="image/jpg">
 <style>
-body { font-family:'Nunito',sans-serif; background:#f7f7f7; margin:20px; }
-.timer-card { display:flex; align-items:center; padding:10px; background:#fff; margin-bottom:10px; border-radius:8px; cursor:pointer; }
-.task-name { flex:1; margin-right:10px; }
-.time-input { width:50px; text-align:center; margin:0 2px; }
-.status-badge { padding:2px 6px; border-radius:4px; background:#eee; }
-.progress-ring { width:40px; height:40px; margin-right:10px; }
+  body { font-family: 'Nunito', sans-serif; background:#f7f7f7; margin:0; padding:0; }
+  #timer-grid { display:grid; grid-template-columns: repeat(auto-fill,minmax(180px,1fr)); gap:1rem; padding:1rem; }
+  .timer-card { background:white; border-radius:1rem; padding:1rem; position:relative; box-shadow:0 2px 5px rgba(0,0,0,0.1); cursor:pointer; }
+  .timer-card.running { border:2px solid #4caf50; }
+  .timer-card.done { opacity:0.6; }
+  .add-card { background:#e0e0e0; border-radius:1rem; display:flex; justify-content:center; align-items:center; cursor:pointer; }
+  .add-card-inner { text-align:center; }
+  .section-label { grid-column:1/-1; font-weight:bold; margin:0.5rem 0; }
+  .idle-label { color:#999; }
+  .time-display { display:flex; justify-content:center; align-items:center; margin-top:0.5rem; }
+  .time-input { width:2rem; text-align:center; }
+  .time-separator { margin:0 0.2rem; }
+  .status-badge { position:absolute; top:0.5rem; right:0.5rem; font-size:0.8rem; }
+  .delete-btn { position:absolute; top:0.5rem; left:0.5rem; background:none; border:none; cursor:pointer; }
+  .progress-ring-wrap { width:48px; height:48px; position:absolute; top:0.5rem; left:50%; transform:translateX(-50%) rotate(-90deg); }
+  .progress-ring-bg { fill:none; stroke:#eee; stroke-width:4; }
+  .progress-ring-fg { fill:none; stroke-width:4; transition: stroke-dashoffset 0.2s linear, stroke 0.2s linear; }
 </style>
 </head>
 <body>
+<div id="loader">載入中...</div>
+<div id="sync-dot" class="sync-dot"></div>
+<div id="sync-label"></div>
+<div id="timer-grid"></div>
 
-<div id="timer-container"></div>
-<audio id="beep" src="https://www.soundjay.com/button/sounds/button-16.mp3"></audio>
-<script type="module">
-// 假設已初始化 supabase 並有 db, TABLE
-let timers = [], lastSec = {}, activeEditingId = null;
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
+<script>
+  const TABLE = 'timers';
+  const db = supabase.createClient('https://zhcahednvdamivzlwziz.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoY2FoZWRudmRhbWl2emx3eml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMTM4MTIsImV4cCI6MjA4OTg4OTgxMn0.W1R1dddjcP28QKqECH4bELwMq3eSWCB0lJUMLtzQp04');
+  let timers = [], rafId, activeEditingId = null, lastSec = {}, subscriptionReady = false;
+  const CIRC = 2 * Math.PI * 12;
 
-// 工具
-const pad2 = n => n.toString().padStart(2,'0');
-const now = () => performance.now();
-const CIRC = 2*Math.PI*18; // 圓環周長
+  const now = () => performance.now();
 
-// ─── 計時器卡片 ─────────────────────────
-function createTimerCard(t){
-  const card = document.createElement('div');
-  card.className='timer-card';
-  card.dataset.id=t.id;
-  card.innerHTML = `
-    <svg class="progress-ring" viewBox="0 0 40 40">
-      <circle r="18" cx="20" cy="20" stroke="#eee" stroke-width="4" fill="none"/>
-      <circle class="progress-ring-fg" r="18" cx="20" cy="20" stroke="#0b5ed7" stroke-width="4" fill="none"
-        stroke-dasharray="${CIRC}" stroke-dashoffset="${CIRC}"/>
-    </svg>
-    <input class="task-name" value="${(t.name||'').replace(/"/g,'&quot;')}" 
-      onfocus="activeEditingId='${t.id}'" onblur="handleNameBlur(this,'${t.id}')">
-    <div class="time-display">
-      <input type="number" class="time-input" data-type="min" value="${pad2(Math.floor(t.remaining_seconds/60))}" 
-        onfocus="activeEditingId='${t.id}'" onblur="handleTimeBlur(this,'${t.id}')">
-      <span>:</span>
-      <input type="number" class="time-input" data-type="sec" value="${pad2(t.remaining_seconds%60)}" 
-        onfocus="activeEditingId='${t.id}'" onblur="handleTimeBlur(this,'${t.id}')">
-    </div>
-    <div class="status-badge">${t.is_active?'進行中':'暫停'}</div>
-  `;
-  card.onclick = e=>{ if(e.target.tagName!=='INPUT') toggleTimer(t.id); };
-  card.querySelectorAll('input').forEach(inp=>inp.onkeydown=e=>e.key==='Enter'&&inp.blur());
-  return card;
-}
+  const pad2 = n => n.toString().padStart(2,'0');
+  const urg = ms => ms <= 20000 ? 'critical' : ms <= 60000 ? 'urgent' : '';
+  const ringColor = u => u==='critical'?'#f44336':u==='urgent'?'#ff9800':'#4caf50';
+  const badgeLabel = u => u==='critical'?'🔴':u==='urgent'?'🟡':'🟢';
+  const statusText = (active, done, u) => done?'完成':active?badgeLabel(u):'待機';
 
-// 渲染
-function renderAll(){
-  const container = document.getElementById('timer-container');
-  container.innerHTML='';
-  timers.forEach(t=>container.appendChild(createTimerCard(t)));
-}
+  function calcEnd(t) {
+    if (!t.is_active || !t.remaining_seconds) return null;
+    return now() + t.remaining_seconds*1000;
+  }
 
-// 更新卡片
-function updateCardDisplay(t, ms){
-  if(activeEditingId===t.id) return;
-  const card=document.querySelector(`.timer-card[data-id="${t.id}"]`);
-  if(!card) return;
-  card.querySelector('[data-type="min"]').value=pad2(Math.floor(t.remaining_seconds/60));
-  card.querySelector('[data-type="sec"]').value=pad2(t.remaining_seconds%60);
-  card.querySelector('.status-badge').textContent=t.is_active?'進行中':'暫停';
-  const ring=card.querySelector('.progress-ring-fg');
-  const p=t.initial_seconds>0?Math.max(0,ms/(t.initial_seconds*1000)):0;
-  ring.setAttribute('stroke-dashoffset',(CIRC*(1-p)).toFixed(2));
-}
+  function updateTabTitle() {
+    const t = now();
+    const activeTimers = timers.filter(x => x.is_active && x.endPerf && x.endPerf > t)
+      .sort((a,b)=>a.endPerf-b.endPerf);
+    if (!activeTimers.length) { document.title='計時器'; return; }
+    const x = activeTimers[0], ms=x.endPerf-t, s=Math.ceil(ms/1000);
+    document.title = `${ms<=20000?'🔴':ms<=60000?'🟡':'🟢'} ${Math.floor(s/60)}:${pad2(s%60)} ${(x.name||'任務').substring(0,8)}`;
+  }
+  setInterval(updateTabTitle,1000);
 
-// ─── RAF 循環 ─────────────────────────
-function rafLoop(){
-  const t0=now();
-  timers.forEach(t=>{
-    if(!t.is_active||t.endPerf===null) return;
-    const ms=t.endPerf-t0;
+  function refreshUI(){ updateUpcomingBar(); updateStats(); }
+
+  async function fetchTimers(){
+    try{
+      const {data,error} = await db.from(TABLE).select('*').order('created_at',{ascending:true});
+      if(error) throw error;
+      timers = (data||[]).map(t=>({...t,endPerf:calcEnd(t)}));
+      renderAll();
+      document.getElementById('loader').classList.add('hidden');
+      document.getElementById('sync-dot').className='sync-dot synced';
+      document.getElementById('sync-label').textContent='已同步';
+      if(rafId) cancelAnimationFrame(rafId);
+      rafLoop();
+    }catch(err){ console.error('載入失敗:',err); alert('無法載入計時器'); }
+  }
+
+  function renderAll(){
+    if(activeEditingId) return;
+    const grid=document.getElementById('timer-grid'); grid.innerHTML='';
+    const running = timers.filter(t=>t.is_active).sort((a,b)=> (a.endPerf||0)-(b.endPerf||0));
+    const idle = timers.filter(t=>!t.is_active);
+    const mkLabel = (extra,text)=>{ const el=document.createElement('div'); el.className='section-label'+(extra?' '+extra:''); el.innerHTML=text; return el; };
+    if(running.length){ grid.appendChild(mkLabel('','▶ 計時中（'+running.length+'）')); running.forEach(t=>grid.appendChild(createCard(t))); }
+    if(idle.length){ grid.appendChild(mkLabel('idle-label','待機（'+idle.length+'）')); idle.forEach(t=>grid.appendChild(createCard(t))); }
+    const add=document.createElement('div'); add.className='add-card'; add.innerHTML='<div class="add-card-inner"><div class="add-icon">＋</div><span>新增任務</span></div>';
+    add.onclick=async e=>{ e.preventDefault(); e.stopPropagation(); try{ const {error}=await db.from(TABLE).insert([{name:'新任務',initial_seconds:0,remaining_seconds:0,is_active:false}]); if(error) throw error; setTimeout(fetchTimers,200); }catch(err){ console.error('新增失敗:',err); alert('新增計時器失敗'); } };
+    grid.appendChild(add); refreshUI();
+  }
+
+  function createCard(t){
+    const t0=now(), ms=t.is_active&&t.endPerf?Math.max(0,t.endPerf-t0):t.remaining_seconds*1000, secs=Math.ceil(ms/1000), u=t.is_active?urg(ms):'', done=!t.is_active&&t.remaining_seconds<=0&&t.initial_seconds>0;
+    const card=document.createElement('div');
+    card.className=['timer-card', t.is_active && 'running', done && 'done', u==='urgent' && 'urgent-card', u==='critical' && 'critical-card'].filter(Boolean).join(' ');
+    card.dataset.id=t.id;
+    const disp=t.is_active?secs:t.remaining_seconds;
+    const progress=t.initial_seconds>0?Math.max(0,Math.min(1,ms/(t.initial_seconds*1000))):0;
+    card.innerHTML=`
+      <div class="pulse-ring"></div>
+      ${t.is_active?`<div class="running-badge">${badgeLabel(u)}</div>`:''}
+      <button class="delete-btn" onclick="event.stopPropagation();deleteTimer('${t.id}')">✕</button>
+      <svg class="progress-ring-wrap" viewBox="0 0 32 32">
+        <circle class="progress-ring-bg" cx="16" cy="16" r="12"/>
+        <circle class="progress-ring-fg" cx="16" cy="16" r="12" stroke="${ringColor(u)}" stroke-dasharray="${CIRC.toFixed(3)}" stroke-dashoffset="${(CIRC*(1-progress)).toFixed(3)}"/>
+      </svg>
+      <input class="task-name" value="${(t.name||'').replace(/"/g,'&quot;')}" onfocus="activeEditingId='${t.id}'" onblur="handleNameBlur(this,'${t.id}')">
+      <div class="time-display">
+        <input type="number" class="time-input" data-type="min" value="${pad2(Math.floor(disp/60))}" onfocus="handleInputFocus(this,'${t.id}')" onblur="handleTimeBlur(this,'${t.id}')">
+        <span class="time-separator">:</span>
+        <input type="number" class="time-input" data-type="sec" value="${pad2(disp%60)}" onfocus="handleInputFocus(this,'${t.id}')" onblur="handleTimeBlur(this,'${t.id}')">
+      </div>
+      <div class="status-badge">${statusText(t.is_active, done, u)}</div>
+    `;
+    card.onclick=e=>{ if(e.target.tagName!=='INPUT') toggleTimer(t.id); };
+    card.querySelectorAll('input').forEach(inp=>{ inp.onkeydown=e=>{ if(e.key==='Enter') inp.blur(); }; });
+    return card;
+  }
+
+  function rafLoop(){
+    rafId=requestAnimationFrame(rafLoop);
+    const t=now(); let needFull=false;
+    timers.forEach(x=>{
+      if(!x.is_active||x.endPerf===null) return;
+      const ms=x.endPerf-t;
+      if(ms<=0){ Object.assign(x,{remaining_seconds:0,is_active:false,endPerf:null,started_at:null}); delete lastSec[x.id]; alert('時間到'); needFull=true; db.from(TABLE).update({remaining_seconds:0,is_active:false,started_at:null}).eq('id',x.id).catch(console.error); return; }
+      const s=Math.ceil(ms/1000);
+      if(lastSec[x.id]===s){ updateRing(x,ms); return; }
+      const prev=lastSec[x.id]; lastSec[x.id]=s; x.remaining_seconds=s;
+      if(prev!==undefined && urg(ms)!==urg(prev*1000)) needFull=true; else updateCardDisplay(x,ms);
+    });
+    if(needFull) renderAll(); else { updateUpcomingBar(); updateStats(); }
+  }
+
+  function updateCardDisplay(t,ms){
+    if(activeEditingId===t.id) return;
+    const card=document.querySelector(`.timer-card[data-id="${t.id}"]`); if(!card) return;
     const s=Math.ceil(ms/1000);
-    if(s<=0){
-      t.is_active=false; t.remaining_seconds=0; t.endPerf=null; lastSec[t.id]=undefined;
-      document.getElementById('beep').play();
-      db.from(TABLE).update({remaining_seconds:0,is_active:false,started_at:null}).eq('id',t.id).catch(console.error);
-      renderAll();
-      return;
-    }
-    if(lastSec[t.id]!==s){ t.remaining_seconds=s; lastSec[t.id]=s; updateCardDisplay(t,ms); }
-  });
-  requestAnimationFrame(rafLoop);
-}
+    const mI=card.querySelector('[data-type="min"]'), sI=card.querySelector('[data-type="sec"]');
+    if(mI) mI.value=pad2(Math.floor(s/60));
+    if(sI) sI.value=pad2(s%60);
+    const badge=card.querySelector('.status-badge'); if(badge) badge.textContent=statusText(true,false,urg(ms));
+    updateRing(t,ms);
+  }
 
-// ─── 事件處理 ─────────────────────────
-async function handleNameBlur(el,id){
-  const t=timers.find(x=>x.id===id); if(t) t.name=el.value; activeEditingId=null;
-  try{ await db.from(TABLE).update({name:el.value}).eq('id',id); } catch(e){ console.error(e); }
-}
+  function updateRing(t,ms){
+    if(activeEditingId===t.id) return;
+    const ring=document.querySelector(`.timer-card[data-id="${t.id}"] .progress-ring-fg`); if(!ring) return;
+    const p=t.initial_seconds>0?Math.max(0,ms/(t.initial_seconds*1000)):0;
+    ring.setAttribute('stroke-dashoffset',(CIRC*(1-p)).toFixed(3));
+    ring.setAttribute('stroke',ringColor(urg(ms)));
+  }
 
-async function handleTimeBlur(el,id){
-  const t=timers.find(x=>x.id===id); if(!t) return;
-  const card=document.querySelector(`.timer-card[data-id="${id}"]`);
-  const m=parseInt(card.querySelector('[data-type="min"]').value)||0;
-  const s=parseInt(card.querySelector('[data-type="sec"]').value)||0;
-  const total=Math.min(99,m)*60+Math.min(59,s);
-  Object.assign(t,{remaining_seconds:total,initial_seconds:total,is_active:false,endPerf:null});
-  activeEditingId=null;
-  try{ await db.from(TABLE).update({remaining_seconds:total,initial_seconds:total,is_active:false,started_at:null}).eq('id',id); } catch(e){ console.error(e); }
-  renderAll();
-}
+  const handleInputFocus=(el,id)=>{ activeEditingId=id; el.select(); };
 
-async function toggleTimer(id){
-  const t=timers.find(x=>x.id===id); if(!t||t.remaining_seconds<=0) return;
-  t.is_active=!t.is_active;
-  t.endPerf=t.is_active?now()+t.remaining_seconds*1000:null;
-  try{ await db.from(TABLE).update({is_active:t.is_active,remaining_seconds:t.remaining_seconds,started_at:t.is_active?new Date().toISOString():null}).eq('id',id); } catch(e){ console.error(e); }
-  renderAll();
-}
+  async function handleNameBlur(el,id){
+    const t=timers.find(x=>x.id===id); if(t) t.name=el.value; activeEditingId=null;
+    try{ const {error}=await db.from(TABLE).update({name:el.value}).eq('id',id); if(error) throw error; renderAll(); }catch(err){ console.error(err); alert('無法更新名稱'); }
+  }
 
-// ─── Realtime 即時同步 ─────────────────
-function setupRealtimeSubscription(){
-  db.channel('timers-sync-'+Math.random().toString(36).slice(2))
-    .on('postgres_changes',{event:'*',schema:'public',table:TABLE},p=>{
-      if(activeEditingId) return;
-      if(p.eventType==='INSERT') timers.push({...p.new,endPerf:p.new.is_active?now()+p.new.remaining_seconds*1000:null});
-      else if(p.eventType==='DELETE') timers=timers.filter(x=>x.id!==p.old.id);
-      else if(p.eventType==='UPDATE'){
-        const t=timers.find(x=>x.id===p.new.id);
-        if(t) Object.assign(t,{name:p.new.name,remaining_seconds:p.new.remaining_seconds,initial_seconds:p.new.initial_seconds,is_active:p.new.is_active,started_at:p.new.started_at,endPerf:p.new.is_active?now()+p.new.remaining_seconds*1000:null});
-      }
-      renderAll();
-    }).subscribe();
-}
+  async function handleTimeBlur(el,id){
+    const t=timers.find(x=>x.id===id); if(!t) return;
+    const card=document.querySelector(`.timer-card[data-id="${id}"]`); if(!card) return;
+    const m=parseInt(card.querySelector('[data-type="min"]').value)||0;
+    const s=parseInt(card.querySelector('[data-type="sec"]').value)||0;
+    const total=Math.min(99,m)*60+Math.min(59,s);
+    Object.assign(t,{remaining_seconds:total,initial_seconds:total,is_active:false,endPerf:null}); activeEditingId=null;
+    try{ if(total>0){ await db.from(TABLE).update({remaining_seconds:total,initial_seconds:total,is_active:false,started_at:null}).eq('id',id); await toggleTimer(id); }else{ const {error}=await db.from(TABLE).update({remaining_seconds:0,initial_seconds:0,is_active:false,started_at:null}).eq('id',id); if(error) throw error; renderAll(); } }catch(err){ console.error(err); alert('無法更新時間'); }
+  }
 
-// ─── 初始化 ─────────────────────────
-async function fetchTimers(){
-  const {data,error}=await db.from(TABLE).select('*');
-  if(error){ console.error(error); return; }
-  timers=data.map(t=>({...t,endPerf:t.is_active?now()+t.remaining_seconds*1000:null}));
-  renderAll();
+  async function toggleTimer(id){
+    const t=timers.find(x=>x.id===id); if(!t) return;
+    if(t.remaining_seconds<=0&&!t.is_active&&t.initial_seconds>0){ Object.assign(t,{remaining_seconds:0,initial_seconds:0,is_active:false,endPerf:null,started_at:null}); delete lastSec[id]; renderAll(); try{ const {error}=await db.from(TABLE).update({remaining_seconds:0,initial_seconds:0,is_active:false,started_at:null}).eq('id',id); if(error) throw error; }catch(err){ console.error(err); } return; }
+    if(t.remaining_seconds<=0) return;
+    t.is_active=!t.is_active; const startedAt=t.is_active?new Date().toISOString():null; t.started_at=startedAt; t.endPerf=calcEnd(t); if(!t.is_active) delete lastSec[id]; renderAll();
+    try{ const {error}=await db.from(TABLE).update({is_active:t.is_active,remaining_seconds:t.remaining_seconds,initial_seconds:t.initial_seconds,started_at:startedAt}).eq('id',id); if(error) throw error; }catch(err){ console.error(err); alert('無法切換計時器狀態'); }
+  }
+
+  async function deleteTimer(id){ try{ const {error}=await db.from(TABLE).delete().eq('id',id); if(error) throw error; }catch(err){ console.error(err); alert('刪除失敗'); } }
+
+  function setupRealtimeSubscription(){
+    db.channel('timers-sync-'+Math.random().toString(36).slice(2))
+      .on('postgres_changes',{event:'*',schema:'public',table:TABLE},p=>{
+        if(activeEditingId) return;
+        if(p.eventType==='INSERT'){ timers.push({...p.new,endPerf:calcEnd(p.new)}); }
+        else if(p.eventType==='DELETE'){ timers=timers.filter(x=>x.id!==p.old.id); delete lastSec[p.old.id]; }
+        else if(p.eventType==='UPDATE'){ const t=timers.find(x=>x.id===p.new.id); if(t){ Object.assign(t,{name:p.new.name,remaining_seconds:p.new.remaining_seconds,initial_seconds:p.new.initial_seconds,is_active:p.new.is_active,started_at:p.new.started_at}); t.endPerf=calcEnd(t); if(!t.is_active) delete lastSec[t.id]; } }
+        renderAll();
+      }).subscribe(status=>{ if(status==='SUBSCRIBED') subscriptionReady=true; });
+  }
+
+  function updateUpcomingBar(){ /* 你的自訂 UI 更新 */ }
+  function updateStats(){ /* 你的自訂統計 */ }
+
   setupRealtimeSubscription();
-}
-fetchTimers();
-requestAnimationFrame(rafLoop);
+  fetchTimers();
+
 </script>
 </body>
 </html>
