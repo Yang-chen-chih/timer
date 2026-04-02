@@ -216,7 +216,18 @@ const lastSec = {};
 const now     = () => performance.now();
 const pad2    = n  => String(n).padStart(2, '0');
 const urg     = ms => ms <= 20000 ? 'critical' : ms <= 60000 ? 'urgent' : '';
-const calcEnd = t  => t.is_active ? now() + t.remaining_seconds * 1000 : null;
+
+// 用 started_at（絕對 UTC 時間）算 endPerf，重整 / 跨裝置都準確
+const calcEnd = t => {
+  if (!t.is_active) return null;
+  if (t.started_at) {
+    const elapsed   = Date.now() - new Date(t.started_at).getTime(); // 已過 ms
+    const remaining = t.initial_seconds * 1000 - elapsed;            // 真正剩餘
+    if (remaining <= 0) return now();   // 已到期，下一幀觸發清除
+    return now() + remaining;
+  }
+  return now() + t.remaining_seconds * 1000; // 舊資料 fallback
+};
 
 const statusText = (active, done, u) =>
   done ? '已結束' : !active ? '點擊開始' :
@@ -404,10 +415,10 @@ function rafLoop() {
     const ms = x.endPerf - t;
 
     if (ms <= 0) {
-      Object.assign(x, { remaining_seconds:0, is_active:false, endPerf:null });
+      Object.assign(x, { remaining_seconds:0, is_active:false, endPerf:null, started_at:null });
       delete lastSec[x.id];
       playBeep(); needFull = true;
-      db.from(TABLE).update({ remaining_seconds:0, is_active:false }).eq('id', x.id).catch(e => console.error('更新失敗:', e));
+      db.from(TABLE).update({ remaining_seconds:0, is_active:false, started_at:null }).eq('id', x.id).catch(e => console.error('更新失敗:', e));
       return;
     }
 
@@ -508,11 +519,18 @@ async function toggleTimer(id) {
   }
   if (t.remaining_seconds <= 0) return;
   t.is_active = !t.is_active;
-  t.endPerf = t.is_active ? now() + t.remaining_seconds * 1000 : null;
+  const startedAt = t.is_active ? new Date().toISOString() : null;
+  t.started_at = startedAt;
+  t.endPerf = calcEnd(t);
   if (!t.is_active) delete lastSec[id];
   renderAll();
   try {
-    const { error } = await db.from(TABLE).update({ is_active:t.is_active, remaining_seconds:t.remaining_seconds, initial_seconds:t.initial_seconds }).eq('id', id);
+    const { error } = await db.from(TABLE).update({
+      is_active: t.is_active,
+      remaining_seconds: t.remaining_seconds,
+      initial_seconds: t.initial_seconds,
+      started_at: startedAt
+    }).eq('id', id);
     if (error) throw error;
   } catch (err) {
     console.error('切換失敗:', err);
@@ -535,24 +553,22 @@ function setupRealtimeSubscription() {
   db.channel('any').on('postgres_changes', { event:'*', schema:'public', table:TABLE }, p => {
     if (activeEditingId) return;
     if (p.eventType === 'INSERT') {
-      timers.push({ ...p.new, endPerf: null });
+      timers.push({ ...p.new, endPerf: calcEnd(p.new) });
     } else if (p.eventType === 'DELETE') {
       timers = timers.filter(x => x.id !== p.old.id);
       delete lastSec[p.old.id];
     } else if (p.eventType === 'UPDATE') {
       const t = timers.find(x => x.id === p.new.id);
       if (t) {
-        const wasActive = t.is_active;
-        Object.assign(t, { name:p.new.name, remaining_seconds:p.new.remaining_seconds,
-          initial_seconds:p.new.initial_seconds, is_active:p.new.is_active });
-        if (!wasActive && t.is_active) {
-          t.endPerf = now() + t.remaining_seconds * 1000;
-        } else if (!t.is_active) {
-          t.endPerf = null; delete lastSec[t.id];
-        } else if (t.endPerf) {
-          if (Math.abs(Math.ceil((t.endPerf - now()) / 1000) - p.new.remaining_seconds) > 2)
-            t.endPerf = now() + p.new.remaining_seconds * 1000;
-        }
+        Object.assign(t, {
+          name:             p.new.name,
+          remaining_seconds:p.new.remaining_seconds,
+          initial_seconds:  p.new.initial_seconds,
+          is_active:        p.new.is_active,
+          started_at:       p.new.started_at
+        });
+        t.endPerf = calcEnd(t);
+        if (!t.is_active) delete lastSec[t.id];
       }
     }
     renderAll();
