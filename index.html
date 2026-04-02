@@ -4,190 +4,103 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>計時器</title>
-<link rel="icon" href="下載4.jpg" type="image/jpg">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@900&family=Varela+Round&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --sage:#7a9e5a;--sage-l:#b5d18c;--sage-p:#e8f3db;--sage-d:#4e7035;
-  --ink:#1c2712;--ink-m:#3d4f2a;--ink-s:#6b7f57;--ink-f:#9ab07f;
-  --bg:#f2f7ea;--cream:#fdfef9;
-  --amber:#d4830a;--amber-p:#fff7e6;
-  --red:#c0392b;--red-p:#fff0ee;
-  --cb:rgba(122,158,90,.2);
-  --sh:0 1px 12px rgba(28,39,18,.07),0 1px 3px rgba(28,39,18,.04);
-  --sh-h:0 6px 32px rgba(28,39,18,.12),0 2px 8px rgba(28,39,18,.06);
-}
-body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;padding-bottom:6rem;position:relative}
-body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:radial-gradient(ellipse 80% 55% at 10% 15%,rgba(181,209,140,.22) 0%,transparent 60%),
-             radial-gradient(ellipse 50% 70% at 88% 80%,rgba(122,158,90,.13) 0%,transparent 55%)}
-
-header{padding:1.75rem 2.5rem 0;display:flex;align-items:flex-end;justify-content:space-between;position:relative;z-index:20}
-.brand-title{font-family:'Nunito',sans-serif;font-size:2.4rem;font-weight:900}
-.brand-title span{color:var(--sage)}
-.sync-area{display:flex;align-items:center;gap:6px;font-size:.7rem;color:var(--ink-s);text-transform:uppercase}
-.sync-dot{width:8px;height:8px;border-radius:50%;background:#ccc}
-.sync-dot.synced{background:#6ab84a;box-shadow:0 0 0 3px rgba(106,184,74,.2)}
-
-.upcoming-bar{margin:1.25rem 2.5rem 0;background:var(--cream);border:1px solid var(--cb);border-radius:1rem;padding:.75rem 1.25rem;display:flex;align-items:center;gap:.5rem;box-shadow:var(--sh);position:relative;z-index:20}
-.upcoming-bar::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(var(--sage-l),var(--sage));border-radius:4px 0 0 4px}
-.upcoming-label{font-size:.7rem;font-weight:700;color:var(--ink-s);white-space:nowrap}
-.upcoming-chips{display:flex;gap:.5rem;flex-wrap:wrap}
-.upcoming-chip{display:flex;align-items:center;gap:6px;background:var(--sage-p);border-radius:2rem;padding:4px 10px;font-size:.75rem;font-weight:700}
-.upcoming-chip.urgent{background:var(--amber-p);color:#7a4800;animation:pulse .7s infinite alternate}
-
-.grid-wrap{padding:1.5rem 2.5rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:1.2rem}
-.timer-card{background:var(--cream);border-radius:1.1rem;padding:1.2rem;position:relative;transition:all .3s;cursor:pointer;opacity:.7;filter:saturate(.5);border:1px solid var(--cb)}
-.timer-card:hover{opacity:.9;transform:translateY(-2px);box-shadow:var(--sh-h)}
-.timer-card.running{background:#fff;opacity:1;filter:saturate(1);transform:scale(1.02);border:2px solid var(--sage)}
-.timer-card.done{background:var(--amber-p);border:2px solid var(--amber);animation:shake .4s infinite alternate;opacity:1;filter:saturate(1)}
-
-@keyframes shake{from{transform:rotate(-1deg)}to{transform:rotate(1deg)}}
-@keyframes pulse{from{opacity:1}to{opacity:.6}}
-
-.task-name{width:100%;border:none;background:transparent;font-weight:700;font-size:.9rem;color:var(--ink-s);margin-top:1rem;outline:none;border-bottom:1px solid transparent}
-.task-name:focus{border-bottom-color:var(--sage)}
-.time-display{display:flex;justify-content:center;align-items:baseline;margin:0.5rem 0}
-.time-input{font-family:'Varela Round';font-size:3rem;font-weight:900;width:1.5em;text-align:center;border:none;background:transparent;outline:none;color:var(--ink)}
-.timer-card.running .time-input{font-size:3.5rem}
-
-.delete-btn{position:absolute;top:.6rem;right:.6rem;width:20px;height:20px;border-radius:50%;border:none;background:rgba(0,0,0,.05);cursor:pointer;font-size:10px;color:#999}
-.delete-btn:hover{background:var(--red);color:#fff}
-.add-card{border:2px dashed var(--sage-l);border-radius:1.1rem;display:grid;place-items:center;min-height:160px;cursor:pointer;color:var(--sage);font-weight:700}
-
-.loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.loading-overlay.hidden{display:none}
-.error-toast{position:fixed;bottom:2rem;right:2rem;background:var(--red);color:#fff;padding:1rem 2rem;border-radius:.5rem;z-index:200}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Noto Sans TC',sans-serif;background:#f2f7ea;color:#1c2712;min-height:100vh;padding:2rem;}
+  .timer-card{background:#fdfef9;border-radius:1rem;padding:1rem;margin-bottom:1rem;display:inline-block;width:150px;text-align:center;cursor:pointer;}
+  .time-input{font-size:2rem;width:2.5em;text-align:center;}
+  .task-name{width:100%;text-align:center;margin-bottom:.5rem;}
 </style>
 </head>
 <body>
 
-<div class="loading-overlay" id="loader">載入中...</div>
-
-<header>
-  <h1 class="brand-title">計時<span>器</span></h1>
-  <div class="sync-area"><div class="sync-dot" id="sync-dot"></div><span id="sync-label">連接中</span></div>
-</header>
-
-<div class="upcoming-bar">
-  <span class="upcoming-label">即將完成</span>
-  <div class="upcoming-chips" id="upcoming-chips"></div>
-</div>
-
-<div class="grid-wrap" id="timer-grid"></div>
+<h1>計時器</h1>
+<div id="timer-grid"></div>
+<button id="add-btn">＋ 新增任務</button>
 
 <script>
-const DB_URL = 'https://zhcahednvdamivzlwziz.supabase.co';
-const DB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoY2FoZWRudmRhbWl2emx3eml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMTM4MTIsImV4cCI6MjA4OTg4OTgxMn0.W1R1dddjcP28QKqECH4bELwMq3eSWCB0lJUMLtzQp04';
-const TABLE  = 'timers';
-const db = supabase.createClient(DB_URL, DB_KEY);
-let timers = [], activeId = null;
-let audioCtx = null;
+// 範例資料，離線測試用
+let timers = [];
+let activeId = null;
 
-const $ = id => document.getElementById(id);
-const pad = n => String(n).padStart(2, '0');
+const pad = n => String(n).padStart(2,'0');
 
-function playBeep() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  [880,1100].forEach((f,i)=>{
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.connect(g); g.connect(audioCtx.destination);
-    o.frequency.value=f;
-    g.gain.setTargetAtTime(0.3, audioCtx.currentTime+i*0.1,0.05);
-    o.start(audioCtx.currentTime+i*0.1);
-    o.stop(audioCtx.currentTime+i*0.1+0.1);
-  });
-}
-
-async function sync() {
-  const { data } = await db.from(TABLE).select('*').order('created_at');
-  timers = data.map(t => ({ ...t, end: t.is_active ? new Date(t.started_at).getTime() + t.initial_seconds*1000 : null }));
-  render();
-  $('loader').classList.add('hidden');
-  $('sync-dot').className='sync-dot synced';
-  $('sync-label').textContent='已同步';
-}
-
-async function upd(id, obj) {
-  activeId = null;
-  await db.from(TABLE).update(obj).eq('id', id);
-  sync();
-}
-
-async function del(id) { await db.from(TABLE).delete().eq('id', id); sync(); }
-
-async function setTime(id, val, isMin){
-  const t = timers.find(x=>x.id===id);
-  const m = isMin ? parseInt(val) : Math.floor(t.remaining_seconds/60);
-  const s = isMin ? t.remaining_seconds%60 : parseInt(val);
-  const total = m*60+s;
-  await upd(id,{initial_seconds:total,remaining_seconds:total,is_active:false});
-}
-
-async function toggle(t){
-  if(t.remaining_seconds<=0 && !t.is_active) return upd(t.id,{remaining_seconds:0,initial_seconds:0});
-  const act = !t.is_active;
-  await upd(t.id,{is_active:act,started_at:act?new Date().toISOString():null});
-}
-
-function render() {
-  if(activeId) return;
-  const grid = $('timer-grid');
+function render(){
+  const grid = document.getElementById('timer-grid');
   grid.innerHTML='';
   timers.forEach(t=>{
-    const nowTime=Date.now();
-    const ms = t.is_active ? Math.max(0,t.end-nowTime) : t.remaining_seconds*1000;
+    const now = Date.now();
+    const ms = t.is_active ? Math.max(0, t.end-now) : t.remaining*1000;
     const sec = Math.ceil(ms/1000);
-    const done = !t.is_active && t.remaining_seconds<=0 && t.initial_seconds>0;
-
     const card = document.createElement('div');
-    card.className=`timer-card ${t.is_active?'running':''} ${done?'done':''}`;
+    card.className='timer-card';
     card.innerHTML=`
-      <button class="delete-btn" onclick="event.stopPropagation();del('${t.id}')">✕</button>
-      <input class="task-name" value="${t.name}" onblur="upd('${t.id}',{name:this.value})">
-      <div class="time-display">
-        <input type="number" class="time-input" value="${pad(Math.floor(sec/60))}"
-          onfocus="activeId='${t.id}'"
-          onblur="setTime('${t.id}', this.value, 1)"
-          onkeydown="if(event.key==='Enter'){setTime('${t.id}', this.value, 1).then(()=>toggle(t)); activeId=null;}">
-        <span>:</span>
-        <input type="number" class="time-input" value="${pad(sec%60)}"
-          onfocus="activeId='${t.id}'"
-          onblur="setTime('${t.id}', this.value, 0)"
-          onkeydown="if(event.key==='Enter'){setTime('${t.id}', this.value, 0).then(()=>toggle(t)); activeId=null;}">
+      <input class="task-name" value="${t.name}" oninput="t.name=this.value">
+      <div>
+        <input class="time-input" value="${pad(Math.floor(sec/60))}" 
+          onkeydown="if(event.key==='Enter'){updateTime('${t.id}', this.value, true);}">
+        :
+        <input class="time-input" value="${pad(sec%60)}"
+          onkeydown="if(event.key==='Enter'){updateTime('${t.id}', this.value, false);}">
       </div>
     `;
-    card.onclick = e=>{if(e.target.tagName!=='INPUT') toggle(t)};
+    card.onclick=e=>{
+      if(e.target.tagName!=='INPUT') toggle(t.id);
+    };
     grid.appendChild(card);
   });
-
-  const add = document.createElement('div');
-  add.className='add-card';
-  add.innerHTML='＋ 新增任務';
-  add.onclick = async ()=>{
-    await db.from(TABLE).insert([{name:'新任務',initial_seconds:0,remaining_seconds:0}]);
-    sync();
-  };
-  grid.appendChild(add);
 }
 
+// 更新時間函數
+function updateTime(id, val, isMin){
+  const t = timers.find(x=>x.id===id);
+  const m = isMin ? parseInt(val)||0 : Math.floor(t.remaining/60);
+  const s = isMin ? t.remaining%60 : parseInt(val)||0;
+  t.remaining = m*60+s;
+  t.initial = t.remaining;
+  activeId=id;
+  toggle(id);
+}
+
+// 切換啟動/暫停
+function toggle(id){
+  const t = timers.find(x=>x.id===id);
+  if(t.remaining<=0 && !t.is_active) return;
+  if(!t.is_active){
+    t.is_active=true;
+    t.end=Date.now()+t.remaining*1000;
+  } else {
+    t.is_active=false;
+    t.remaining=Math.ceil((t.end-Date.now())/1000);
+    t.end=null;
+  }
+  activeId=null;
+  render();
+}
+
+// 新增任務
+document.getElementById('add-btn').onclick=()=>{
+  const id='t'+Date.now();
+  timers.push({id,name:'新任務',remaining:0,initial:0,is_active:false,end:null});
+  render();
+}
+
+// 計時迴圈
 setInterval(()=>{
-  const nowTime=Date.now();
+  const now=Date.now();
   timers.forEach(t=>{
-    if(t.is_active && t.end<=nowTime){
-      playBeep();
-      upd(t.id,{is_active:false,remaining_seconds:0,started_at:null});
+    if(t.is_active && t.end<=now){
+      t.is_active=false;
+      t.remaining=0;
+      t.end=null;
+      alert('時間到！');
     }
   });
-  if(!activeId) render();
+  render();
 },1000);
 
-db.channel('any').on('postgres_changes',{event:'*',schema:'public',table:TABLE},sync).subscribe();
-sync();
+render();
 </script>
-
 </body>
 </html>
