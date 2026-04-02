@@ -1,480 +1,547 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>計時器</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@900&family=Varela+Round&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-        :root{
-            --sage:#7a9e5a;--sage-l:#b5d18c;--sage-p:#e8f3db;--sage-d:#4e7035;
-            --ink:#1c2712;--ink-m:#3d4f2a;--ink-s:#6b7f57;--ink-f:#9ab07f;
-            --bg:#f2f7ea;--cream:#fdfef9;
-            --amber:#d4830a;--amber-p:#fff7e6;
-            --red:#c0392b;--red-p:#fff0ee;
-            --cb:rgba(122,158,90,.2);
-            --sh:0 1px 12px rgba(28,39,18,.07),0 1px 3px rgba(28,39,18,.04);
-            --sh-h:0 6px 32px rgba(28,39,18,.12),0 2px 8px rgba(28,39,18,.06);
-        }
-        body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;overflow-x:hidden;padding-bottom:6rem}
-        body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
-            background-image:
-            radial-gradient(ellipse 80% 55% at 10% 15%,rgba(181,209,140,.22) 0%,transparent 60%),
-            radial-gradient(ellipse 50% 70% at 88% 80%,rgba(122,158,90,.13) 0%,transparent 55%),
-            radial-gradient(ellipse 40% 40% at 50% 50%,rgba(212,131,10,.04) 0%,transparent 70%)}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>計時器</title>
+<link rel="icon" href="下載4.jpg" type="image/jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@900&family=Varela+Round&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --sage:#7a9e5a;--sage-l:#b5d18c;--sage-p:#e8f3db;--sage-d:#4e7035;
+  --ink:#1c2712;--ink-m:#3d4f2a;--ink-s:#6b7f57;--ink-f:#9ab07f;
+  --bg:#f2f7ea;--cream:#fdfef9;
+  --amber:#d4830a;--amber-p:#fff7e6;
+  --red:#c0392b;--red-p:#fff0ee;
+  --cb:rgba(122,158,90,.2);
+  --sh:0 1px 12px rgba(28,39,18,.07),0 1px 3px rgba(28,39,18,.04);
+  --sh-h:0 6px 32px rgba(28,39,18,.12),0 2px 8px rgba(28,39,18,.06);
+}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;overflow-x:hidden;padding-bottom:6rem}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    radial-gradient(ellipse 80% 55% at 10% 15%,rgba(181,209,140,.22) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 70% at 88% 80%,rgba(122,158,90,.13) 0%,transparent 55%),
+    radial-gradient(ellipse 40% 40% at 50% 50%,rgba(212,131,10,.04) 0%,transparent 70%)}
 
-        header{position:relative;z-index:20;padding:1.75rem 2.5rem 0;display:flex;align-items:flex-end;justify-content:space-between}
-        .brand-title{font-family:'Nunito',sans-serif;font-size:2.4rem;font-weight:900;color:var(--ink);letter-spacing:-.03em}
-        .brand-title span{color:var(--sage)}
-        .sync-area{display:flex;align-items:center;gap:6px;padding-bottom:4px}
-        .sync-dot{width:8px;height:8px;border-radius:50%;background:#ccc;transition:all .4s}
-        .sync-dot.synced{background:#6ab84a;box-shadow:0 0 0 3px rgba(106,184,74,.2)}
-        .sync-label{font-size:.7rem;color:var(--ink-s);text-transform:uppercase;letter-spacing:.06em}
+header{position:relative;z-index:20;padding:1.75rem 2.5rem 0;display:flex;align-items:flex-end;justify-content:space-between}
+.brand-title{font-family:'Nunito',sans-serif;font-size:2.4rem;font-weight:900;color:var(--ink);letter-spacing:-.03em}
+.brand-title span{color:var(--sage)}
+.sync-area{display:flex;align-items:center;gap:6px;padding-bottom:4px}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#ccc;transition:all .4s}
+.sync-dot.synced{background:#6ab84a;box-shadow:0 0 0 3px rgba(106,184,74,.2)}
+.sync-label{font-size:.7rem;color:var(--ink-s);text-transform:uppercase;letter-spacing:.06em}
 
-        .upcoming-bar{position:relative;z-index:20;margin:1.25rem 2.5rem 0;background:var(--cream);
-            border:1px solid var(--cb);border-radius:1rem;padding:.75rem 1.25rem;
-            display:flex;align-items:center;gap:.5rem;overflow:hidden;box-shadow:var(--sh);min-height:52px}
-        .upcoming-bar::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;
-            background:linear-gradient(180deg,var(--sage-l),var(--sage));border-radius:4px 0 0 4px}
-        .upcoming-label{font-size:.7rem;font-weight:700;color:var(--ink-s);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;padding-left:.25rem}
-        .upcoming-chips{display:flex;gap:.5rem;flex-wrap:wrap;flex:1}
-        .upcoming-chip{display:flex;align-items:center;gap:6px;background:var(--sage-p);border:1px solid rgba(122,158,90,.25);
-            border-radius:2rem;padding:4px 10px 4px 8px;font-size:.75rem;color:var(--ink-m);font-weight:700;transition:all .3s}
-        .upcoming-chip.urgent{background:var(--amber-p);border-color:rgba(212,131,10,.3);color:#7a4800;animation:pulse-chip 1.2s ease-in-out infinite}
-        .upcoming-chip.critical{background:var(--red-p);border-color:rgba(192,57,43,.3);color:#7a1a10;animation:pulse-chip .7s ease-in-out infinite}
-        @keyframes pulse-chip{0%,100%{opacity:1}50%{opacity:.65}}
-        .chip-dot{width:6px;height:6px;border-radius:50%;background:var(--sage);flex-shrink:0}
-        .chip-dot.urgent{background:var(--amber)}
-        .chip-dot.critical{background:var(--red)}
-        .chip-name{max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .chip-time{font-family:'Varela Round',sans-serif;font-size:.8rem}
-        .upcoming-empty{font-size:.8rem;color:var(--ink-f);padding-left:.25rem;font-style:italic}
+.upcoming-bar{position:relative;z-index:20;margin:1.25rem 2.5rem 0;background:var(--cream);
+  border:1px solid var(--cb);border-radius:1rem;padding:.75rem 1.25rem;
+  display:flex;align-items:center;gap:.5rem;overflow:hidden;box-shadow:var(--sh);min-height:52px}
+.upcoming-bar::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;
+  background:linear-gradient(180deg,var(--sage-l),var(--sage));border-radius:4px 0 0 4px}
+.upcoming-label{font-size:.7rem;font-weight:700;color:var(--ink-s);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;padding-left:.25rem}
+.upcoming-chips{display:flex;gap:.5rem;flex-wrap:wrap;flex:1}
+.upcoming-chip{display:flex;align-items:center;gap:6px;background:var(--sage-p);border:1px solid rgba(122,158,90,.25);
+  border-radius:2rem;padding:4px 10px 4px 8px;font-size:.75rem;color:var(--ink-m);font-weight:700;transition:all .3s}
+.upcoming-chip.urgent{background:var(--amber-p);border-color:rgba(212,131,10,.3);color:#7a4800;animation:pulse-chip 1.2s ease-in-out infinite}
+.upcoming-chip.critical{background:var(--red-p);border-color:rgba(192,57,43,.3);color:#7a1a10;animation:pulse-chip .7s ease-in-out infinite}
+@keyframes pulse-chip{0%,100%{opacity:1}50%{opacity:.65}}
+.chip-dot{width:6px;height:6px;border-radius:50%;background:var(--sage);flex-shrink:0}
+.chip-dot.urgent{background:var(--amber)}
+.chip-dot.critical{background:var(--red)}
+.chip-name{max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip-time{font-family:'Varela Round',sans-serif;font-size:.8rem}
+.upcoming-empty{font-size:.8rem;color:var(--ink-f);padding-left:.25rem;font-style:italic}
 
-        .stats-strip{position:relative;z-index:15;margin:0 2.5rem;display:flex;gap:.75rem}
-        .stat-pill{background:var(--cream);border:1px solid var(--cb);border-radius:2rem;padding:.35rem .85rem;
-            display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--ink-s);font-weight:700}
-        .stat-pill-dot{width:7px;height:7px;border-radius:50%;background:var(--sage-l)}
-        .stat-pill-dot.active{background:var(--sage);box-shadow:0 0 0 2px rgba(122,158,90,.2)}
-        .stat-pill-num{font-family:'Varela Round',sans-serif;font-size:.85rem;color:var(--ink-m)}
+.stats-strip{position:relative;z-index:15;margin:0 2.5rem;display:flex;gap:.75rem}
+.stat-pill{background:var(--cream);border:1px solid var(--cb);border-radius:2rem;padding:.35rem .85rem;
+  display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--ink-s);font-weight:700}
+.stat-pill-dot{width:7px;height:7px;border-radius:50%;background:var(--sage-l)}
+.stat-pill-dot.active{background:var(--sage);box-shadow:0 0 0 2px rgba(122,158,90,.2)}
+.stat-pill-num{font-family:'Varela Round',sans-serif;font-size:.85rem;color:var(--ink-m)}
 
-        .grid-wrap{position:relative;z-index:10;padding:1.5rem 2.5rem;
-            display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:1.2rem;align-items:start}
+.grid-wrap{position:relative;z-index:10;padding:1.5rem 2.5rem;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:1.2rem;align-items:start}
 
-        .timer-card{background:var(--cream);border:1.5px solid rgba(122,158,90,.12);border-radius:1.1rem;
-            padding:1.2rem 1.1rem 1rem;box-shadow:0 1px 4px rgba(28,39,18,.04);transition:all .35s ease;
-            display:flex;flex-direction:column;gap:.3rem;cursor:pointer;position:relative;overflow:hidden;
-            opacity:.7;filter:saturate(.5)}
-        .timer-card:hover{opacity:.9;filter:saturate(.8);box-shadow:var(--sh-h);transform:translateY(-1px);border-color:rgba(122,158,90,.3)}
-        .timer-card.running{background:#fff;border:2px solid rgba(122,158,90,.55);border-radius:1.25rem;
-            padding:1.4rem 1.3rem 1.2rem;opacity:1;filter:saturate(1);transform:translateY(-4px) scale(1.02);z-index:5;
-            box-shadow:0 8px 36px rgba(28,39,18,.13),0 2px 8px rgba(28,39,18,.07),0 0 0 4px rgba(122,158,90,.1),inset 0 0 0 1px rgba(181,209,140,.4)}
-        .timer-card.done{border:2px solid rgba(212,131,10,.55);background:var(--amber-p);opacity:1;filter:saturate(1);
-            transform:translateY(-2px);animation:shake .45s infinite alternate;
-            box-shadow:0 4px 20px rgba(212,131,10,.2),0 0 0 4px rgba(212,131,10,.08)}
-        @keyframes shake{from{transform:rotate(-.8deg) scale(1.01)}to{transform:rotate(.8deg) scale(1.01)}}
-        .timer-card.running.urgent-card{border-color:rgba(212,131,10,.55);box-shadow:0 8px 36px rgba(212,131,10,.15),0 0 0 4px rgba(212,131,10,.1)}
-        .timer-card.running.critical-card{border-color:rgba(192,57,43,.55);box-shadow:0 8px 36px rgba(192,57,43,.15),0 0 0 4px rgba(192,57,43,.1)}
+.timer-card{background:var(--cream);border:1.5px solid rgba(122,158,90,.12);border-radius:1.1rem;
+  padding:1.2rem 1.1rem 1rem;box-shadow:0 1px 4px rgba(28,39,18,.04);transition:all .35s ease;
+  display:flex;flex-direction:column;gap:.3rem;cursor:pointer;position:relative;overflow:hidden;
+  opacity:.7;filter:saturate(.5)}
+.timer-card:hover{opacity:.9;filter:saturate(.8);box-shadow:var(--sh-h);transform:translateY(-1px);border-color:rgba(122,158,90,.3)}
+.timer-card.running{background:#fff;border:2px solid rgba(122,158,90,.55);border-radius:1.25rem;
+  padding:1.4rem 1.3rem 1.2rem;opacity:1;filter:saturate(1);transform:translateY(-4px) scale(1.02);z-index:5;
+  box-shadow:0 8px 36px rgba(28,39,18,.13),0 2px 8px rgba(28,39,18,.07),0 0 0 4px rgba(122,158,90,.1),inset 0 0 0 1px rgba(181,209,140,.4)}
+.timer-card.done{border:2px solid rgba(212,131,10,.55);background:var(--amber-p);opacity:1;filter:saturate(1);
+  transform:translateY(-2px);animation:shake .45s infinite alternate;
+  box-shadow:0 4px 20px rgba(212,131,10,.2),0 0 0 4px rgba(212,131,10,.08)}
+@keyframes shake{from{transform:rotate(-.8deg) scale(1.01)}to{transform:rotate(.8deg) scale(1.01)}}
+.timer-card.running.urgent-card{border-color:rgba(212,131,10,.55);box-shadow:0 8px 36px rgba(212,131,10,.15),0 0 0 4px rgba(212,131,10,.1)}
+.timer-card.running.critical-card{border-color:rgba(192,57,43,.55);box-shadow:0 8px 36px rgba(192,57,43,.15),0 0 0 4px rgba(192,57,43,.1)}
 
-        .timer-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:transparent;border-radius:3px 0 0 3px;transition:background .3s}
-        .timer-card.running::before{background:linear-gradient(180deg,var(--sage-l),var(--sage))}
-        .timer-card.done::before,.timer-card.running.urgent-card::before{background:linear-gradient(180deg,#f5c842,var(--amber))}
-        .timer-card.running.critical-card::before{background:linear-gradient(180deg,#f5a0a0,var(--red))}
+.timer-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:transparent;border-radius:3px 0 0 3px;transition:background .3s}
+.timer-card.running::before{background:linear-gradient(180deg,var(--sage-l),var(--sage))}
+.timer-card.done::before,.timer-card.running.urgent-card::before{background:linear-gradient(180deg,#f5c842,var(--amber))}
+.timer-card.running.critical-card::before{background:linear-gradient(180deg,#f5a0a0,var(--red))}
 
-        @keyframes pulse-ring{0%{transform:scale(1);opacity:.45}70%{transform:scale(1.12);opacity:0}100%{transform:scale(1);opacity:0}}
-        .pulse-ring{position:absolute;inset:-6px;border-radius:1.35rem;border:2px solid rgba(122,158,90,.4);
-            pointer-events:none;display:none;animation:pulse-ring 2s ease-out infinite}
-        .timer-card.running .pulse-ring{display:block}
-        .timer-card.running.urgent-card .pulse-ring{border-color:rgba(212,131,10,.4);animation-duration:1.3s}
-        .timer-card.running.critical-card .pulse-ring{border-color:rgba(192,57,43,.45);animation-duration:.8s}
+@keyframes pulse-ring{0%{transform:scale(1);opacity:.45}70%{transform:scale(1.12);opacity:0}100%{transform:scale(1);opacity:0}}
+.pulse-ring{position:absolute;inset:-6px;border-radius:1.35rem;border:2px solid rgba(122,158,90,.4);
+  pointer-events:none;display:none;animation:pulse-ring 2s ease-out infinite}
+.timer-card.running .pulse-ring{display:block}
+.timer-card.running.urgent-card .pulse-ring{border-color:rgba(212,131,10,.4);animation-duration:1.3s}
+.timer-card.running.critical-card .pulse-ring{border-color:rgba(192,57,43,.45);animation-duration:.8s}
 
-        .running-badge{display:none;position:absolute;top:.65rem;left:50%;transform:translateX(-50%);
-            background:linear-gradient(90deg,var(--sage-d),var(--sage));color:#fff;font-size:.6rem;font-weight:900;
-            letter-spacing:.1em;text-transform:uppercase;padding:2px 10px;border-radius:2rem;z-index:10;
-            box-shadow:0 2px 6px rgba(78,112,53,.3)}
-        .timer-card.running .running-badge{display:block}
-        .timer-card.running.urgent-card .running-badge{background:linear-gradient(90deg,#b87400,var(--amber))}
-        .timer-card.running.critical-card .running-badge{background:linear-gradient(90deg,#8b1a10,var(--red))}
+.running-badge{display:none;position:absolute;top:.65rem;left:50%;transform:translateX(-50%);
+  background:linear-gradient(90deg,var(--sage-d),var(--sage));color:#fff;font-size:.6rem;font-weight:900;
+  letter-spacing:.1em;text-transform:uppercase;padding:2px 10px;border-radius:2rem;z-index:10;
+  box-shadow:0 2px 6px rgba(78,112,53,.3)}
+.timer-card.running .running-badge{display:block}
+.timer-card.running.urgent-card .running-badge{background:linear-gradient(90deg,#b87400,var(--amber))}
+.timer-card.running.critical-card .running-badge{background:linear-gradient(90deg,#8b1a10,var(--red))}
 
-        .progress-ring-wrap{position:absolute;top:.8rem;right:.8rem;width:32px;height:32px;opacity:0;transition:opacity .35s}
-        .timer-card.running .progress-ring-wrap{opacity:1}
-        .progress-ring-bg{fill:none;stroke:var(--sage-p);stroke-width:3}
-        .progress-ring-fg{fill:none;stroke:var(--sage);stroke-width:3;stroke-linecap:round}
+.progress-ring-wrap{position:absolute;top:.8rem;right:.8rem;width:32px;height:32px;opacity:0;transition:opacity .35s}
+.timer-card.running .progress-ring-wrap{opacity:1}
+.progress-ring-bg{fill:none;stroke:var(--sage-p);stroke-width:3}
+.progress-ring-fg{fill:none;stroke:var(--sage);stroke-width:3;stroke-linecap:round}
 
-        .task-name{font-size:.88rem;font-weight:700;border:none;background:transparent;outline:none;
-            color:var(--ink-s);width:78%;border-bottom:2px solid transparent;padding-bottom:1px;
-            transition:border-color .2s,color .3s;margin-top:1.4rem}
-        .timer-card.running .task-name{color:var(--ink-m);font-size:.95rem}
-        .task-name:focus{border-bottom-color:var(--sage)}
-        .timer-card.done .task-name{color:#7a4800}
+.task-name{font-size:.88rem;font-weight:700;border:none;background:transparent;outline:none;
+  color:var(--ink-s);width:78%;border-bottom:2px solid transparent;padding-bottom:1px;
+  transition:border-color .2s,color .3s;margin-top:1.4rem}
+.timer-card.running .task-name{color:var(--ink-m);font-size:.95rem}
+.task-name:focus{border-bottom-color:var(--sage)}
+.timer-card.done .task-name{color:#7a4800}
 
-        .time-display{display:flex;justify-content:center;align-items:center;margin:.1rem 0}
-        .time-input{font-family:'Varela Round',sans-serif;font-size:3rem;font-weight:900;width:1.65em;
-            padding:0;text-align:center;border:none;background:transparent;outline:none;
-            color:rgba(28,39,18,.35);border-radius:.4rem;-moz-appearance:textfield;
-            transition:background .15s,color .3s,font-size .3s}
-        .time-input::-webkit-outer-spin-button,.time-input::-webkit-inner-spin-button{-webkit-appearance:none}
-        .time-input:focus{background:var(--sage-p)}
-        .timer-card.running .time-input{font-size:3.8rem;color:var(--ink)}
-        .timer-card.done .time-input,.timer-card.running.urgent-card .time-input{color:var(--amber);font-size:3rem}
-        .timer-card.running.critical-card .time-input{color:var(--red)}
+.time-display{display:flex;justify-content:center;align-items:center;margin:.1rem 0}
+.time-input{font-family:'Varela Round',sans-serif;font-size:3rem;font-weight:900;width:1.65em;
+  padding:0;text-align:center;border:none;background:transparent;outline:none;
+  color:rgba(28,39,18,.35);border-radius:.4rem;-moz-appearance:textfield;
+  transition:background .15s,color .3s,font-size .3s}
+.time-input::-webkit-outer-spin-button,.time-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.time-input:focus{background:var(--sage-p)}
+.timer-card.running .time-input{font-size:3.8rem;color:var(--ink)}
+.timer-card.done .time-input,.timer-card.running.urgent-card .time-input{color:var(--amber);font-size:3rem}
+.timer-card.running.critical-card .time-input{color:var(--red)}
 
-        .time-separator{font-size:2.6rem;font-weight:900;line-height:1;margin-bottom:.35rem;color:rgba(122,158,90,.25);transition:color .3s,font-size .3s}
-        .timer-card.running .time-separator{font-size:3.2rem;color:rgba(122,158,90,.6)}
-        .timer-card.done .time-separator,.timer-card.running.urgent-card .time-separator{color:rgba(212,131,10,.5)}
-        .timer-card.running.critical-card .time-separator{color:rgba(192,57,43,.5)}
+.time-separator{font-size:2.6rem;font-weight:900;line-height:1;margin-bottom:.35rem;color:rgba(122,158,90,.25);transition:color .3s,font-size .3s}
+.timer-card.running .time-separator{font-size:3.2rem;color:rgba(122,158,90,.6)}
+.timer-card.done .time-separator,.timer-card.running.urgent-card .time-separator{color:rgba(212,131,10,.5)}
+.timer-card.running.critical-card .time-separator{color:rgba(192,57,43,.5)}
 
-        .status-badge{font-size:.65rem;text-align:center;font-weight:700;color:rgba(155,176,127,.7);
-            padding:.25rem .5rem;border-radius:2rem;margin-top:.1rem;text-transform:uppercase;letter-spacing:.07em;transition:all .3s}
-        .timer-card.running .status-badge{background:rgba(122,158,90,.1);color:var(--sage-d)}
-        .timer-card.done .status-badge{background:rgba(212,131,10,.12);color:var(--amber)}
-        .timer-card.running.urgent-card .status-badge{background:rgba(212,131,10,.1);color:#b87400}
-        .timer-card.running.critical-card .status-badge{background:rgba(192,57,43,.1);color:var(--red)}
+.status-badge{font-size:.65rem;text-align:center;font-weight:700;color:rgba(155,176,127,.7);
+  padding:.25rem .5rem;border-radius:2rem;margin-top:.1rem;text-transform:uppercase;letter-spacing:.07em;transition:all .3s}
+.timer-card.running .status-badge{background:rgba(122,158,90,.1);color:var(--sage-d)}
+.timer-card.done .status-badge{background:rgba(212,131,10,.12);color:var(--amber)}
+.timer-card.running.urgent-card .status-badge{background:rgba(212,131,10,.1);color:#b87400}
+.timer-card.running.critical-card .status-badge{background:rgba(192,57,43,.1);color:var(--red)}
 
-        .delete-btn{position:absolute;top:.65rem;right:.65rem;background:rgba(0,0,0,.04);border:none;cursor:pointer;
-            width:22px;height:22px;border-radius:50%;color:#bbb;z-index:20;
-            display:flex;align-items:center;justify-content:center;font-size:10px;transition:all .2s}
-        .delete-btn:hover{background:#ff5f5f;color:#fff}
-        .timer-card.running .delete-btn{display:none}
+.delete-btn{position:absolute;top:.65rem;right:.65rem;background:rgba(0,0,0,.04);border:none;cursor:pointer;
+  width:22px;height:22px;border-radius:50%;color:#bbb;z-index:20;
+  display:flex;align-items:center;justify-content:center;font-size:10px;transition:all .2s}
+.delete-btn:hover{background:#ff5f5f;color:#fff}
+.timer-card.running .delete-btn{display:none}
 
-        .add-card{border:2px dashed rgba(122,158,90,.3);border-radius:1.1rem;min-height:150px;
-            display:grid;place-items:center;cursor:pointer;color:rgba(122,158,90,.5);font-weight:800;
-            font-size:.9rem;transition:all .2s;letter-spacing:.02em;opacity:.7}
-        .add-card:hover{background:var(--sage-p);transform:scale(1.02);border-color:var(--sage);opacity:1;color:var(--sage)}
-        .add-card-inner{display:flex;flex-direction:column;align-items:center;gap:.4rem}
-        .add-icon{font-size:1.6rem;opacity:.5}
+.add-card{border:2px dashed rgba(122,158,90,.3);border-radius:1.1rem;min-height:150px;
+  display:grid;place-items:center;cursor:pointer;color:rgba(122,158,90,.5);font-weight:800;
+  font-size:.9rem;transition:all .2s;letter-spacing:.02em;opacity:.7}
+.add-card:hover{background:var(--sage-p);transform:scale(1.02);border-color:var(--sage);opacity:1;color:var(--sage)}
+.add-card-inner{display:flex;flex-direction:column;align-items:center;gap:.4rem}
+.add-icon{font-size:1.6rem;opacity:.5}
 
-        .loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:100;
-            display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s;gap:1rem}
-        .loading-overlay.hidden{opacity:0;pointer-events:none}
-        .loader-spinner{width:32px;height:32px;border:3px solid var(--sage-p);border-top-color:var(--sage);
-            border-radius:50%;animation:spin .8s linear infinite}
-        @keyframes spin{to{transform:rotate(360deg)}}
-        .loader-text{color:var(--ink-s);font-size:.85rem}
+.loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:100;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s;gap:1rem}
+.loading-overlay.hidden{opacity:0;pointer-events:none}
+.loader-spinner{width:32px;height:32px;border:3px solid var(--sage-p);border-top-color:var(--sage);
+  border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-text{color:var(--ink-s);font-size:.85rem}
 
-        .section-label{grid-column:1/-1;font-size:.68rem;font-weight:700;color:var(--ink-s);
-            text-transform:uppercase;letter-spacing:.1em;display:flex;align-items:center;gap:.6rem;margin-top:.4rem}
-        .section-label::after{content:'';flex:1;height:1px;background:rgba(122,158,90,.15)}
-        .section-label.idle-label{color:var(--ink-f);margin-top:.8rem}
+.section-label{grid-column:1/-1;font-size:.68rem;font-weight:700;color:var(--ink-s);
+  text-transform:uppercase;letter-spacing:.1em;display:flex;align-items:center;gap:.6rem;margin-top:.4rem}
+.section-label::after{content:'';flex:1;height:1px;background:rgba(122,158,90,.15)}
+.section-label.idle-label{color:var(--ink-f);margin-top:.8rem}
 
-        .error-toast{position:fixed;bottom:2rem;right:2rem;background:#c0392b;color:#fff;padding:1rem 1.5rem;
-            border-radius:.5rem;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:200;animation:slideIn .3s ease}
-        @keyframes slideIn{from{transform:translateX(400px);opacity:0}to{transform:translateX(0);opacity:1}}
-    </style>
+.error-toast{position:fixed;bottom:2rem;right:2rem;background:#c0392b;color:#fff;padding:1rem 1.5rem;
+  border-radius:.5rem;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:200;animation:slideIn .3s ease}
+@keyframes slideIn{from{transform:translateX(400px);opacity:0}to{transform:translateX(0);opacity:1}}
+</style>
 </head>
 <body>
 
 <div class="loading-overlay" id="loader">
-    <div class="loader-spinner"></div>
-    <span class="loader-text">載入中…</span>
+  <div class="loader-spinner"></div>
+  <span class="loader-text">載入中…</span>
 </div>
 
 <header>
-    <h1 class="brand-title">計時<span>器</span></h1>
-    <div class="sync-area">
-        <div class="sync-dot" id="sync-dot"></div>
-        <span class="sync-label" id="sync-label">連接中</span>
-    </div>
+  <h1 class="brand-title">計時<span>器</span></h1>
+  <div class="sync-area">
+    <div class="sync-dot" id="sync-dot"></div>
+    <span class="sync-label" id="sync-label">連接中</span>
+  </div>
 </header>
 
 <div class="upcoming-bar">
-    <span class="upcoming-label">即將完成</span>
-    <div class="upcoming-chips" id="upcoming-chips">
-        <span class="upcoming-empty">目前沒有進行中的計時</span>
-    </div>
+  <span class="upcoming-label">即將完成</span>
+  <div class="upcoming-chips" id="upcoming-chips">
+    <span class="upcoming-empty">目前沒有進行中的計時</span>
+  </div>
 </div>
 
 <div class="stats-strip" style="margin-top:.9rem">
-    <div class="stat-pill">
-        <div class="stat-pill-dot active"></div><span>進行中</span>
-        <span class="stat-pill-num" id="stat-active">0</span>
-    </div>
-    <div class="stat-pill">
-        <div class="stat-pill-dot"></div><span>全部</span>
-        <span class="stat-pill-num" id="stat-total">0</span>
-    </div>
+  <div class="stat-pill">
+    <div class="stat-pill-dot active"></div><span>進行中</span>
+    <span class="stat-pill-num" id="stat-active">0</span>
+  </div>
+  <div class="stat-pill">
+    <div class="stat-pill-dot"></div><span>全部</span>
+    <span class="stat-pill-num" id="stat-total">0</span>
+  </div>
 </div>
 
 <div class="grid-wrap" id="timer-grid"></div>
 
 <script>
-    const DB_URL = 'https://zhcahednvdamivzlwziz.supabase.co';
-    const DB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoY2FoZWRudmRhbWl2emx3eml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMTM4MTIsImV4cCI6MjA4OTg4OTgxMn0.W1R1dddjcP28QKqECH4bELwMq3eSWCB0lJUMLtzQp04';
-    const TABLE  = 'timers';
-    const CIRC   = 2 * Math.PI * 12;
+const DB_URL = 'https://zhcahednvdamivzlwziz.supabase.co';
+const DB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoY2FoZWRudmRhbWl2emx3eml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMTM4MTIsImV4cCI6MjA4OTg4OTgxMn0.W1R1dddjcP28QKqECH4bELwMq3eSWCB0lJUMLtzQp04';
+const TABLE  = 'timers';
+const CIRC   = 2 * Math.PI * 12;
 
-    const db = supabase.createClient(DB_URL, DB_KEY);
-    let timers = [], activeEditingId = null, rafId = null, subscriptionReady = false;
-    let audioCtx = null;
-    const lastSec = {};
+const db = supabase.createClient(DB_URL, DB_KEY);
+let timers = [], activeEditingId = null, rafId = null, subscriptionReady = false;
+let audioCtx = null;
+const lastSec = {};
 
-    // ── 工具函式 ──
-    const now     = () => performance.now();
-    const pad2    = n  => String(n).padStart(2, '0');
-    const urg     = ms => ms <= 20000 ? 'critical' : ms <= 60000 ? 'urgent' : '';
+// ─── 工具函式 ──────────────────────────────────────────────────────────────
+const pad2    = n  => String(n).padStart(2, '0');
+const urg     = ms => ms <= 20000 ? 'critical' : ms <= 60000 ? 'urgent' : '';
 
-    const calcEnd = t => {
-        if (!t.is_active || !t.started_at) return null;
-        const elapsed = Date.now() - new Date(t.started_at).getTime();
-        const remaining = (t.initial_seconds * 1000) - elapsed;
-        return remaining <= 0 ? now() : now() + remaining;
-    };
+// 改用 Date.now() 計算絕對結束時間戳記
+const calcEndTimeStamp = t => {
+  if (!t.is_active || !t.started_at) return null;
+  const start = new Date(t.started_at).getTime();
+  return start + (t.initial_seconds * 1000);
+};
 
-    const statusText = (active, done, u) => 
-        done ? '已結束' : !active ? '點擊開始' : 
-        u === 'critical' ? '即將完成' : u === 'urgent' ? '快要結束' : '正在計時';
+const statusText = (active, done, u) =>
+  done ? '已結束' : !active ? '點擊開始' :
+  u === 'critical' ? '即將完成' : u === 'urgent' ? '快要結束' : '正在計時';
 
-    const badgeLabel = u => 
-        u === 'critical' ? '🔴 即將完成' : u === 'urgent' ? '🟡 快要結束' : '▶ 計時中';
+const badgeLabel = u =>
+  u === 'critical' ? '🔴 即將完成' : u === 'urgent' ? '🟡 快要結束' : '▶ 計時中';
 
-    const ringColor = u => 
-        u === 'critical' ? '#c0392b' : u === 'urgent' ? '#d4830a' : '#7a9e5a';
+const ringColor = u =>
+  u === 'critical' ? '#c0392b' : u === 'urgent' ? '#d4830a' : '#7a9e5a';
 
-    // ── 音效 (加入手動啟動邏輯) ──
-    const unlockAudio = () => {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        document.removeEventListener('click', unlockAudio);
-    };
-    document.addEventListener('click', unlockAudio);
+// ─── 音效 & 瀏覽器限制解決 ──────────────────────────────────────────────────
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
 
-    function playBeep() {
-        if (!audioCtx) return;
-        try {
-            [880, 1100, 880].forEach((freq, i) => {
-                const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.frequency.value = freq;
-                const s = audioCtx.currentTime + i * 0.18;
-                gain.gain.setValueAtTime(0.4, s);
-                gain.gain.exponentialRampToValueAtTime(0.01, s + 0.15);
-                osc.start(s); osc.stop(s + 0.18);
-            });
-        } catch(e) {}
+function playBeep() {
+  initAudio();
+  [880, 1100, 880].forEach((freq, i) => {
+    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.frequency.value = freq;
+    const s = audioCtx.currentTime + i * 0.18;
+    gain.gain.setValueAtTime(0.4, s);
+    gain.gain.exponentialRampToValueAtTime(0.01, s + 0.15);
+    osc.start(s); osc.stop(s + 0.18);
+  });
+}
+
+// ─── 錯誤提示 ──────────────────────────────────────────────────────────────
+function showError(msg) {
+  const toast = document.createElement('div');
+  toast.className = 'error-toast';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+// ─── UI 刷新 ───────────────────────────────────────────────────────────────
+function updateUpcomingBar() {
+  const t = Date.now();
+  const active = timers.filter(x => x.is_active && x.endTimeStamp > t).sort((a, b) => a.endTimeStamp - b.endTimeStamp);
+  document.getElementById('upcoming-chips').innerHTML = active.length
+    ? active.map(x => {
+        const ms = x.endTimeStamp - t, s = Math.ceil(ms / 1000), m = Math.floor(s / 60), sc = s % 60;
+        const u = urg(ms);
+        return `<div class="upcoming-chip ${u}"><div class="chip-dot ${u}"></div>
+          <span class="chip-name">${(x.name||'任務').substring(0,10)}</span>
+          <span class="chip-time">${m > 0 ? `${m}分${sc > 0 ? sc+'秒' : ''}` : `${sc}秒`}</span></div>`;
+      }).join('')
+    : '<span class="upcoming-empty">目前沒有進行中的計時</span>';
+}
+
+function updateStats() {
+  document.getElementById('stat-active').textContent = timers.filter(t => t.is_active).length;
+  document.getElementById('stat-total').textContent = timers.length;
+}
+
+function updateTabTitle() {
+  const t = Date.now();
+  const active = timers.filter(x => x.is_active && x.endTimeStamp && x.endTimeStamp > t)
+                        .sort((a, b) => a.endTimeStamp - b.endTimeStamp);
+  if (!active.length) { document.title = '計時器'; return; }
+  const x = active[0], ms = x.endTimeStamp - t, s = Math.ceil(ms / 1000);
+  document.title = `${ms<=20000?'🔴':ms<=60000?'🟡':'🟢'} ${Math.floor(s/60)}:${pad2(s%60)} ${(x.name||'任務').substring(0,8)}`;
+}
+setInterval(updateTabTitle, 1000);
+
+function refreshUI() { updateUpcomingBar(); updateStats(); }
+
+// ─── 載入資料 ──────────────────────────────────────────────────────────────
+async function fetchTimers() {
+  try {
+    const { data, error } = await db.from(TABLE).select('*').order('created_at', { ascending: true });
+    if (error) throw error;
+    timers = (data || []).map(t => ({ ...t, endTimeStamp: calcEndTimeStamp(t) }));
+    renderAll();
+    document.getElementById('loader').classList.add('hidden');
+    document.getElementById('sync-dot').className = 'sync-dot synced';
+    document.getElementById('sync-label').textContent = '已同步';
+    if (rafId) cancelAnimationFrame(rafId);
+    rafLoop();
+  } catch (err) {
+    console.error('載入失敗:', err);
+    showError('無法載入計時器');
+  }
+}
+
+// ─── 渲染 ──────────────────────────────────────────────────────────────────
+function renderAll() {
+  if (activeEditingId) return;
+  const grid = document.getElementById('timer-grid');
+  grid.innerHTML = '';
+
+  const running = timers.filter(t =>  t.is_active).sort((a, b) => (a.endTimeStamp||0) - (b.endTimeStamp||0));
+  const idle    = timers.filter(t => !t.is_active);
+
+  const mkLabel = (extra, text) => {
+    const el = document.createElement('div');
+    el.className = 'section-label' + (extra ? ' ' + extra : '');
+    el.innerHTML = text; return el;
+  };
+
+  if (running.length) { grid.appendChild(mkLabel('', `▶ 計時中（${running.length}）`)); running.forEach(t => grid.appendChild(createCard(t))); }
+  if (idle.length)    { grid.appendChild(mkLabel('idle-label', `待機（${idle.length}）`));    idle.forEach(t => grid.appendChild(createCard(t))); }
+
+  const add = document.createElement('div');
+  add.className = 'add-card';
+  add.innerHTML = '<div class="add-card-inner"><div class="add-icon">＋</div><span>新增任務</span></div>';
+  add.onclick = async (e) => {
+    e.preventDefault(); e.stopPropagation(); initAudio();
+    try {
+      const { error } = await db.from(TABLE).insert([{ name: '新任務', initial_seconds: 0, remaining_seconds: 0, is_active: false }]);
+      if (error) throw error;
+    } catch (err) { showError('新增計時器失敗'); }
+  };
+  grid.appendChild(add);
+  refreshUI();
+}
+
+function createCard(t) {
+  const t0   = Date.now();
+  const ms   = t.is_active && t.endTimeStamp ? Math.max(0, t.endTimeStamp - t0) : t.remaining_seconds * 1000;
+  const secs = Math.ceil(ms / 1000);
+  const u    = t.is_active ? urg(ms) : '';
+  const done = !t.is_active && t.remaining_seconds <= 0 && t.initial_seconds > 0;
+
+  const card = document.createElement('div');
+  card.className = ['timer-card', t.is_active && 'running', done && 'done',
+    u === 'urgent' && 'urgent-card', u === 'critical' && 'critical-card'].filter(Boolean).join(' ');
+  card.dataset.id = t.id;
+
+  const disp = t.is_active ? secs : t.remaining_seconds;
+  const progress = t.initial_seconds > 0 ? Math.max(0, Math.min(1, ms / (t.initial_seconds * 1000))) : 0;
+
+  card.innerHTML = `
+    <div class="pulse-ring"></div>
+    ${t.is_active ? `<div class="running-badge">${badgeLabel(u)}</div>` : ''}
+    <button class="delete-btn" onclick="event.stopPropagation();deleteTimer('${t.id}')">✕</button>
+    <svg class="progress-ring-wrap" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="transform:rotate(-90deg)">
+      <circle class="progress-ring-bg" cx="16" cy="16" r="12"/>
+      <circle class="progress-ring-fg" cx="16" cy="16" r="12"
+        stroke="${ringColor(u)}" stroke-dasharray="${CIRC.toFixed(3)}" stroke-dashoffset="${(CIRC*(1-progress)).toFixed(3)}"/>
+    </svg>
+    <input class="task-name" value="${(t.name||'').replace(/"/g,'&quot;')}"
+      onfocus="activeEditingId='${t.id}'" onblur="handleNameBlur(this,'${t.id}')">
+    <div class="time-display">
+      <input type="number" class="time-input" data-type="min" value="${pad2(Math.floor(disp/60))}"
+        onfocus="handleInputFocus(this,'${t.id}')" onblur="handleTimeBlur(this,'${t.id}')">
+      <span class="time-separator">:</span>
+      <input type="number" class="time-input" data-type="sec" value="${pad2(disp%60)}"
+        onfocus="handleInputFocus(this,'${t.id}')" onblur="handleTimeBlur(this,'${t.id}')">
+    </div>
+    <div class="status-badge">${statusText(t.is_active, done, u)}</div>`;
+
+  card.onclick = e => { initAudio(); if (e.target.tagName !== 'INPUT') toggleTimer(t.id); };
+  card.querySelectorAll('input').forEach(inp => { inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); }; });
+  return card;
+}
+
+// ─── 計時核心迴圈 (RAF 用於流暢更新) ───────────────────────────────────────────
+function rafLoop() {
+  rafId = requestAnimationFrame(rafLoop);
+  processTimers();
+}
+
+// ─── 背景後援迴圈 (setInterval 用於分頁在背景時執行) ───────────────────────────
+setInterval(processTimers, 1000);
+
+// ─── 統一處理邏輯 ───
+function processTimers() {
+  const t = Date.now();
+  let needFull = false;
+
+  timers.forEach(x => {
+    if (!x.is_active || !x.endTimeStamp) return;
+    const ms = x.endTimeStamp - t;
+
+    if (ms <= 0) {
+      Object.assign(x, { remaining_seconds:0, is_active:false, endTimeStamp:null, started_at:null });
+      delete lastSec[x.id];
+      playBeep(); needFull = true;
+      db.from(TABLE).update({ remaining_seconds:0, is_active:false, started_at:null }).eq('id', x.id).catch(() => {});
+      return;
     }
 
-    // ── 錯誤提示 ──
-    function showError(msg) {
-        const toast = document.createElement('div');
-        toast.className = 'error-toast';
-        toast.textContent = msg;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-    }
+    const s = Math.ceil(ms / 1000);
+    if (lastSec[x.id] === s) { updateRing(x, ms); return; }
 
-    // ── UI 刷新核心 ──
-    function updateUpcomingBar() {
-        const t = now();
-        const active = timers.filter(x => x.is_active && x.endPerf > t).sort((a, b) => a.endPerf - b.endPerf);
-        document.getElementById('upcoming-chips').innerHTML = active.length
-            ? active.map(x => {
-                const ms = x.endPerf - t, s = Math.ceil(ms / 1000), m = Math.floor(s / 60), sc = s % 60;
-                const u = urg(ms);
-                return `<div class="upcoming-chip ${u}"><div class="chip-dot ${u}"></div>
-                    <span class="chip-name">${(x.name||'任務').substring(0,10)}</span>
-                    <span class="chip-time">${m > 0 ? `${m}分${sc > 0 ? sc+'秒' : ''}` : `${sc}秒`}</span></div>`;
-            }).join('')
-            : '<span class="upcoming-empty">目前沒有進行中的計時</span>';
-    }
+    const prev = lastSec[x.id];
+    lastSec[x.id] = s;
+    x.remaining_seconds = s;
 
-    function updateStats() {
-        document.getElementById('stat-active').textContent = timers.filter(t => t.is_active).length;
-        document.getElementById('stat-total').textContent = timers.length;
+    if (prev !== undefined && urg(ms) !== urg(prev * 1000)) {
+      needFull = true;
+    } else {
+      updateCardDisplay(x, ms);
     }
+  });
 
-    function updateTabTitle() {
-        const t = now();
-        const active = timers.filter(x => x.is_active && x.endPerf && x.endPerf > t).sort((a, b) => a.endPerf - b.endPerf);
-        if (!active.length) { document.title = '計時器'; return; }
-        const x = active[0], ms = x.endPerf - t, s = Math.ceil(ms / 1000);
-        document.title = `${ms<=20000?'🔴':ms<=60000?'🟡':'🟢'} ${Math.floor(s/60)}:${pad2(s%60)} ${(x.name||'任務').substring(0,8)}`;
+  if (needFull) renderAll(); else { updateUpcomingBar(); updateStats(); }
+}
+
+// 分頁回到前台時強制同步，修正「卡秒」跳躍感
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    timers.forEach(t => { t.endTimeStamp = calcEndTimeStamp(t); });
+    renderAll();
+  }
+});
+
+function updateCardDisplay(t, ms) {
+  if (activeEditingId === t.id) return;
+  const card = document.querySelector(`.timer-card[data-id="${t.id}"]`);
+  if (!card) return;
+  const s = Math.ceil(ms / 1000);
+  const mI = card.querySelector('[data-type="min"]'), sI = card.querySelector('[data-type="sec"]');
+  if (mI && document.activeElement !== mI) mI.value = pad2(Math.floor(s / 60));
+  if (sI && document.activeElement !== sI) sI.value = pad2(s % 60);
+  const badge = card.querySelector('.status-badge');
+  if (badge) badge.textContent = statusText(true, false, urg(ms));
+  updateRing(t, ms);
+}
+
+function updateRing(t, ms) {
+  if (activeEditingId === t.id) return;
+  const ring = document.querySelector(`.timer-card[data-id="${t.id}"] .progress-ring-fg`);
+  if (!ring) return;
+  const p = t.initial_seconds > 0 ? Math.max(0, ms / (t.initial_seconds * 1000)) : 0;
+  ring.setAttribute('stroke-dashoffset', (CIRC * (1 - p)).toFixed(3));
+  ring.setAttribute('stroke', ringColor(urg(ms)));
+}
+
+// ─── 事件處理 ──────────────────────────────────────────────────────────────
+const handleInputFocus = (el, id) => { activeEditingId = id; el.select(); };
+
+async function handleNameBlur(el, id) {
+  const t = timers.find(x => x.id === id);
+  if (t) t.name = el.value;
+  activeEditingId = null;
+  try {
+    const { error } = await db.from(TABLE).update({ name: el.value }).eq('id', id);
+    if (error) throw error;
+    renderAll();
+  } catch (err) { showError('無法更新任務名稱'); }
+}
+
+async function handleTimeBlur(el, id) {
+  const t = timers.find(x => x.id === id);
+  if (!t) return;
+  const card = document.querySelector(`.timer-card[data-id="${id}"]`);
+  const m = parseInt(card.querySelector('[data-type="min"]').value) || 0;
+  const s = parseInt(card.querySelector('[data-type="sec"]').value) || 0;
+  const total = Math.min(99, m) * 60 + Math.min(59, s);
+  
+  Object.assign(t, { remaining_seconds:total, initial_seconds:total, is_active:false, endTimeStamp:null });
+  activeEditingId = null;
+  try {
+    if (total > 0) {
+      await db.from(TABLE).update({ remaining_seconds:total, initial_seconds:total, is_active:false, started_at:null }).eq('id', id);
+      await toggleTimer(id);
+    } else {
+      await db.from(TABLE).update({ remaining_seconds:0, initial_seconds:0, is_active:false, started_at:null }).eq('id', id);
+      renderAll();
     }
+  } catch (err) { showError('無法更新時間'); }
+}
 
-    // ── 載入資料 ──
-    async function fetchTimers() {
-        try {
-            const { data, error } = await db.from(TABLE).select('*').order('created_at', { ascending: true });
-            if (error) throw error;
-            timers = (data || []).map(t => ({ ...t, endPerf: calcEnd(t) }));
-            renderAll();
-            document.getElementById('loader').classList.add('hidden');
-            document.getElementById('sync-dot').className = 'sync-dot synced';
-            document.getElementById('sync-label').textContent = '已同步';
-            if (rafId) cancelAnimationFrame(rafId);
-            rafLoop();
-        } catch (err) {
-            console.error('載入失敗:', err);
-            showError('無法載入計時器');
+async function toggleTimer(id) {
+  const t = timers.find(x => x.id === id);
+  if (!t) return;
+  if (t.remaining_seconds <= 0 && !t.is_active && t.initial_seconds > 0) {
+    Object.assign(t, { remaining_seconds:0, initial_seconds:0, is_active:false, endTimeStamp:null, started_at:null });
+    delete lastSec[id]; renderAll();
+    try { await db.from(TABLE).update({ remaining_seconds:0, initial_seconds:0, is_active:false, started_at:null }).eq('id', id); } catch(e){}
+    return;
+  }
+  if (t.remaining_seconds <= 0) return;
+  
+  t.is_active = !t.is_active;
+  const startedAt = t.is_active ? new Date().toISOString() : null;
+  t.started_at = startedAt;
+  t.endTimeStamp = calcEndTimeStamp(t);
+  
+  if (!t.is_active) delete lastSec[id];
+  renderAll();
+  try {
+    await db.from(TABLE).update({ is_active: t.is_active, remaining_seconds: t.remaining_seconds, initial_seconds: t.initial_seconds, started_at: startedAt }).eq('id', id);
+  } catch (err) { showError('無法切換狀態'); }
+}
+
+async function deleteTimer(id) {
+  try { await db.from(TABLE).delete().eq('id', id); } catch (err) { showError('無法刪除'); }
+}
+
+// ─── 即時同步 ──────────────────────────────────────────────────────────────
+function setupRealtimeSubscription() {
+  db.channel('timers-sync-' + Math.random().toString(36).slice(2))
+    .on('postgres_changes', { event:'*', schema:'public', table:TABLE }, p => {
+      if (activeEditingId) return;
+      if (p.eventType === 'INSERT') {
+        timers.push({ ...p.new, endTimeStamp: calcEndTimeStamp(p.new) });
+      } else if (p.eventType === 'DELETE') {
+        timers = timers.filter(x => x.id !== p.old.id);
+        delete lastSec[p.old.id];
+      } else if (p.eventType === 'UPDATE') {
+        const t = timers.find(x => x.id === p.new.id);
+        if (t) {
+          Object.assign(t, { name: p.new.name, remaining_seconds: p.new.remaining_seconds, initial_seconds: p.new.initial_seconds, is_active: p.new.is_active, started_at: p.new.started_at });
+          t.endTimeStamp = calcEndTimeStamp(t);
+          if (!t.is_active) delete lastSec[t.id];
         }
-    }
+      }
+      renderAll();
+    }).subscribe(status => { if (status === 'SUBSCRIBED') subscriptionReady = true; });
+}
 
-    // ── 渲染 ──
-    function renderAll() {
-        if (activeEditingId) return;
-        const grid = document.getElementById('timer-grid');
-        grid.innerHTML = '';
-
-        const running = timers.filter(t => t.is_active).sort((a, b) => (a.endPerf||0) - (b.endPerf||0));
-        const idle = timers.filter(t => !t.is_active);
-
-        const mkLabel = (extra, text) => {
-            const el = document.createElement('div');
-            el.className = 'section-label' + (extra ? ' ' + extra : '');
-            el.innerHTML = text; return el;
-        };
-
-        if (running.length) { grid.appendChild(mkLabel('', `▶ 計時中（${running.length}）`)); running.forEach(t => grid.appendChild(createCard(t))); }
-        if (idle.length) { grid.appendChild(mkLabel('idle-label', `待機（${idle.length}）`)); idle.forEach(t => grid.appendChild(createCard(t))); }
-
-        const add = document.createElement('div');
-        add.className = 'add-card';
-        add.innerHTML = '<div class="add-card-inner"><div class="add-icon">＋</div><span>新增任務</span></div>';
-        add.onclick = async () => {
-            try {
-                await db.from(TABLE).insert([{ name: '新任務', initial_seconds: 0, remaining_seconds: 0, is_active: false }]);
-            } catch (err) { showError('新增失敗'); }
-        };
-        grid.appendChild(add);
-        updateUpcomingBar(); updateStats();
-    }
-
-    function createCard(t) {
-        const t0 = now(), ms = t.is_active && t.endPerf ? Math.max(0, t.endPerf - t0) : t.remaining_seconds * 1000;
-        const secs = Math.ceil(ms / 1000), u = t.is_active ? urg(ms) : '';
-        const done = !t.is_active && t.remaining_seconds <= 0 && t.initial_seconds > 0;
-        const card = document.createElement('div');
-        card.className = ['timer-card', t.is_active && 'running', done && 'done', u === 'urgent' && 'urgent-card', u === 'critical' && 'critical-card'].filter(Boolean).join(' ');
-        card.dataset.id = t.id;
-        const disp = t.is_active ? secs : t.remaining_seconds;
-        const progress = t.initial_seconds > 0 ? Math.max(0, Math.min(1, ms / (t.initial_seconds * 1000))) : 0;
-
-        card.innerHTML = `
-            <div class="pulse-ring"></div>
-            ${t.is_active ? `<div class="running-badge">${badgeLabel(u)}</div>` : ''}
-            <button class="delete-btn" onclick="event.stopPropagation();deleteTimer('${t.id}')">✕</button>
-            <svg class="progress-ring-wrap" viewBox="0 0 32 32" style="transform:rotate(-90deg)">
-                <circle class="progress-ring-bg" cx="16" cy="16" r="12"/>
-                <circle class="progress-ring-fg" cx="16" cy="16" r="12" stroke="${ringColor(u)}" stroke-dasharray="${CIRC}" stroke-dashoffset="${CIRC*(1-progress)}"/>
-            </svg>
-            <input class="task-name" value="${(t.name||'').replace(/"/g,'&quot;')}" onfocus="activeEditingId='${t.id}'" onblur="handleNameBlur(this,'${t.id}')">
-            <div class="time-display">
-                <input type="number" class="time-input" data-type="min" value="${pad2(Math.floor(disp/60))}" onfocus="handleInputFocus(this,'${t.id}')" onblur="handleTimeBlur(this,'${t.id}')">
-                <span class="time-separator">:</span>
-                <input type="number" class="time-input" data-type="sec" value="${pad2(disp%60)}" onfocus="handleInputFocus(this,'${t.id}')" onblur="handleTimeBlur(this,'${t.id}')">
-            </div>
-            <div class="status-badge">${statusText(t.is_active, done, u)}</div>`;
-
-        card.onclick = e => { if (e.target.tagName !== 'INPUT') toggleTimer(t.id); };
-        card.querySelectorAll('input').forEach(inp => { inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); }; });
-        return card;
-    }
-
-    // ── 優化的 RAF 迴圈 ──
-    function rafLoop() {
-        rafId = requestAnimationFrame(rafLoop);
-        const t = now();
-        let needFull = false, secChanged = false;
-
-        timers.forEach(x => {
-            if (!x.is_active || x.endPerf === null) return;
-            const ms = x.endPerf - t;
-            if (ms <= 0) {
-                Object.assign(x, { remaining_seconds:0, is_active:false, endPerf:null, started_at:null });
-                delete lastSec[x.id]; playBeep(); needFull = true; secChanged = true;
-                db.from(TABLE).update({ remaining_seconds:0, is_active:false, started_at:null }).eq('id', x.id);
-                return;
-            }
-            const s = Math.ceil(ms / 1000);
-            if (lastSec[x.id] !== s) {
-                const prevU = urg(lastSec[x.id] * 1000 || 0);
-                lastSec[x.id] = s; x.remaining_seconds = s; secChanged = true;
-                if (urg(ms) !== prevU) needFull = true; else updateCardDisplay(x, ms);
-            } else { updateRing(x, ms); }
-        });
-
-        if (secChanged) { updateUpcomingBar(); updateStats(); updateTabTitle(); }
-        if (needFull) renderAll();
-    }
-
-    function updateCardDisplay(t, ms) {
-        if (activeEditingId === t.id) return;
-        const card = document.querySelector(`.timer-card[data-id="${t.id}"]`);
-        if (!card) return;
-        const s = Math.ceil(ms / 1000);
-        card.querySelector('[data-type="min"]').value = pad2(Math.floor(s/60));
-        card.querySelector('[data-type="sec"]').value = pad2(s%60);
-        updateRing(t, ms);
-    }
-
-    function updateRing(t, ms) {
-        const ring = document.querySelector(`.timer-card[data-id="${t.id}"] .progress-ring-fg`);
-        if (!ring) return;
-        const p = t.initial_seconds > 0 ? Math.max(0, ms / (t.initial_seconds * 1000)) : 0;
-        ring.setAttribute('stroke-dashoffset', CIRC * (1 - p));
-        ring.setAttribute('stroke', ringColor(urg(ms)));
-    }
-
-    // ── 事件處理 ──
-    const handleInputFocus = (el, id) => { activeEditingId = id; el.select(); };
-    async function handleNameBlur(el, id) {
-        const t = timers.find(x => x.id === id);
-        if (t) t.name = el.value;
-        activeEditingId = null;
-        await db.from(TABLE).update({ name: el.value }).eq('id', id);
-        renderAll();
-    }
-
-    async function handleTimeBlur(el, id) {
-        const t = timers.find(x => x.id === id);
-        if (!t) return;
-        const card = document.querySelector(`.timer-card[data-id="${id}"]`);
-        const m = parseInt(card.querySelector('[data-type="min"]').value) || 0;
-        const s = parseInt(card.querySelector('[data-type="sec"]').value) || 0;
-        const total = Math.min(99, m) * 60 + Math.min(59, s);
-        activeEditingId = null;
-        Object.assign(t, { remaining_seconds:total, initial_seconds:total, is_active:false, endPerf:null });
-        await db.from(TABLE).update({ remaining_seconds:total, initial_seconds:total, is_active:false, started_at:null }).eq('id', id);
-        if (total > 0) toggleTimer(id); else renderAll();
-    }
-
-    async function toggleTimer(id) {
-        const t = timers.find(x => x.id === id);
-        if (!t) return;
-        if (t.remaining_seconds <= 0 && !t.is_active && t.initial_seconds > 0) {
-            Object.assign(t, { remaining_seconds:0, initial_seconds:0, is_active:false, endPerf:null, started_at:null });
-            delete lastSec[id]; renderAll();
-            await db.from(TABLE).update({ remaining_seconds:0, initial_seconds:0, is_active:false, started_at:null }).eq('id', id);
-            return;
-        }
-        if (t.remaining_seconds <= 0) return;
-        t.is_active = !t.is_active;
-        t.started_at = t.is_active ? new Date().toISOString() : null;
-        t.endPerf = calcEnd(t);
-        if (!t.is_active) delete lastSec[id];
-        renderAll();
-        await db.from(TABLE).update({ is_active: t.is_active, remaining_seconds: t.remaining_seconds, started_at: t.started_at }).eq('id', id);
-    }
-
-    async function deleteTimer(id) {
-        timers = timers.filter(x => x.id !== id); renderAll();
-        await db.from(TABLE).delete().eq('id', id);
-    }
-
-    // ── 即時同步 ──
-    db.channel('timers-sync').on('postgres_changes', { event:'*', schema:'public', table:TABLE }, p => {
-        if (activeEditingId) return;
-        if (p.eventType === 'INSERT') timers.push({ ...p.new, endPerf: calcEnd(p.new) });
-        else if (p.eventType === 'DELETE') { timers = timers.filter(x => x.id !== p.old.id); delete lastSec[p.old.id]; }
-        else if (p.eventType === 'UPDATE') {
-            const t = timers.find(x => x.id === p.new.id);
-            if (t) { Object.assign(t, p.new); t.endPerf = calcEnd(t); if (!t.is_active) delete lastSec[t.id]; }
-        }
-        renderAll();
-    }).subscribe();
-
-    fetchTimers();
+// ─── 初始化 ──────────────────────────────────────────────────────────────────
+setupRealtimeSubscription();
+fetchTimers();
 </script>
 </body>
 </html>
