@@ -283,6 +283,7 @@
             font-size: 0.9rem; transition: all 0.2s; letter-spacing: 0.02em; opacity: 0.7;
         }
         .add-card:hover { background: var(--sage-pale); transform: scale(1.02); border-color: var(--sage); opacity: 1; color: var(--sage); }
+        .add-card.loading { opacity: 0.4; pointer-events: none; }
         .add-card-inner { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; }
         .add-icon { font-size: 1.6rem; opacity: 0.5; }
 
@@ -359,7 +360,7 @@ const CONFIG = {
 
 const db = supabase.createClient(CONFIG.URL, CONFIG.KEY);
 let timers = [];
-let editingId = null;  // id of timer whose input is focused
+let editingId = null;
 
 /* ── Helpers ── */
 const urgency = t => t.is_active
@@ -438,8 +439,32 @@ function renderAll() {
 
     const addBtn = document.createElement('div');
     addBtn.className = 'add-card';
+    addBtn.id = 'add-card-btn';
     addBtn.innerHTML = '<div class="add-card-inner"><div class="add-icon">＋</div><span>新增任務</span></div>';
-    addBtn.onclick = () => db.from(CONFIG.TABLE).insert([{ name: '新任務', initial_seconds: 0, remaining_seconds: 0, is_active: false }]);
+
+    /* ── 修正：新增後立即本地更新，不依賴 Realtime ── */
+    addBtn.onclick = async () => {
+        addBtn.classList.add('loading');
+        addBtn.querySelector('span').textContent = '新增中…';
+        const { data, error } = await db.from(CONFIG.TABLE)
+            .insert([{ name: '新任務', initial_seconds: 0, remaining_seconds: 0, is_active: false }])
+            .select()
+            .single();
+        if (error) {
+            console.error('新增失敗', error);
+            addBtn.classList.remove('loading');
+            addBtn.querySelector('span').textContent = '新增任務';
+            return;
+        }
+        if (data) {
+            // 避免 Realtime 重複插入
+            if (!timers.find(x => x.id === data.id)) {
+                timers.push({ ...data, endTime: null });
+            }
+            renderAll();
+        }
+    };
+
     grid.appendChild(addBtn);
 
     document.getElementById('stat-active').textContent = running.length;
@@ -477,7 +502,7 @@ function buildCard(t) {
                 stroke-dasharray="${CIRC.toFixed(2)}"
                 stroke-dashoffset="${offset}"/>
         </svg>
-        <input class="task-name" value="${t.name || ''}"
+        <input class="task-name" value="${(t.name || '').replace(/"/g, '&quot;')}"
             onfocus="editingId='${t.id}'"
             onblur="onNameBlur(this,'${t.id}')">
         <div class="time-display">
@@ -566,13 +591,14 @@ async function toggleTimer(id) {
     }
     if (t.remaining_seconds <= 0) return;
     t.is_active = !t.is_active;
-    // Key fix: store absolute end timestamp
     t.endTime = t.is_active ? Date.now() + t.remaining_seconds * 1000 : null;
     renderAll();
     await db.from(CONFIG.TABLE).update({ is_active: t.is_active, remaining_seconds: t.remaining_seconds, initial_seconds: t.initial_seconds }).eq('id', id);
 }
 
 async function deleteTimer(id) {
+    timers = timers.filter(x => x.id !== id);
+    renderAll();
     await db.from(CONFIG.TABLE).delete().eq('id', id);
 }
 
@@ -581,25 +607,31 @@ db.channel('timer-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: CONFIG.TABLE }, p => {
         if (editingId) return;
         if (p.eventType === 'INSERT') {
-            timers.push({ ...p.new, endTime: null });
+            /* 修正：避免與本地樂觀更新重複 */
+            if (!timers.find(x => x.id === p.new.id)) {
+                timers.push({
+                    ...p.new,
+                    endTime: p.new.is_active ? Date.now() + p.new.remaining_seconds * 1000 : null
+                });
+                renderAll();
+            }
         } else if (p.eventType === 'DELETE') {
             timers = timers.filter(x => x.id !== p.old.id);
+            renderAll();
         } else if (p.eventType === 'UPDATE') {
             const t = timers.find(x => x.id === p.new.id);
             if (t) {
                 const wasActive = t.is_active;
                 Object.assign(t, p.new);
-                // Recalculate endTime only when active state changes
                 if (!wasActive && t.is_active) t.endTime = Date.now() + t.remaining_seconds * 1000;
                 else if (!t.is_active)          t.endTime = null;
             }
+            renderAll();
         }
-        renderAll();
     })
     .subscribe();
 
 /* ── Tick loop ── */
-// Uses absolute endTime to avoid drift. Runs at 100 ms for sub-second accuracy.
 setInterval(() => {
     const now = Date.now();
     let needFullRender = false;
@@ -609,7 +641,7 @@ setInterval(() => {
         if (!t.is_active || !t.endTime) return;
         const newSec = Math.max(0, Math.ceil((t.endTime - now) / 1000));
 
-        if (newSec === t.remaining_seconds) return; // nothing changed
+        if (newSec === t.remaining_seconds) return;
 
         const prevSec = t.remaining_seconds;
         t.remaining_seconds = newSec;
@@ -619,7 +651,6 @@ setInterval(() => {
             playBeep(); needFullRender = true;
             db.from(CONFIG.TABLE).update({ remaining_seconds: 0, is_active: false }).eq('id', t.id);
         } else {
-            // Trigger full re-render on urgency threshold crossings
             if ((prevSec === 61 && newSec === 60) || (prevSec === 21 && newSec === 20)) {
                 needFullRender = true;
             } else {
@@ -635,7 +666,13 @@ setInterval(() => {
 
 /* ── Init ── */
 async function fetchTimers() {
-    const { data } = await db.from(CONFIG.TABLE).select('*').order('created_at', { ascending: true });
+    const { data, error } = await db.from(CONFIG.TABLE).select('*').order('created_at', { ascending: true });
+    if (error) {
+        console.error('載入失敗', error);
+        document.getElementById('sync-label').textContent = '載入失敗';
+        document.getElementById('loader').classList.add('hidden');
+        return;
+    }
     timers = (data || []).map(t => ({
         ...t,
         endTime: t.is_active ? Date.now() + t.remaining_seconds * 1000 : null
