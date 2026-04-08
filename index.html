@@ -229,11 +229,16 @@
         .time-input {
             font-family: 'Varela Round', sans-serif;
             font-size: 3.0rem; font-weight: 900;
-            width: 1.65em; padding: 0; text-align: center;
+            padding: 0; text-align: center;
             border: none; background: transparent; outline: none;
             color: rgba(28,39,18,0.35); border-radius: 0.4rem;
             -moz-appearance: textfield; transition: background 0.15s, color 0.3s, font-size 0.3s;
+            /* 修正：不固定寬度，改用 ch 單位自適應位數 */
+            width: 2.2ch; min-width: 2ch;
         }
+        /* 分鐘欄位允許更多位數 */
+        .time-input[data-role="min"] { width: 3.2ch; min-width: 2ch; }
+        .time-input[data-role="sec"] { width: 2.2ch; min-width: 2ch; }
         .time-input::-webkit-outer-spin-button,
         .time-input::-webkit-inner-spin-button { -webkit-appearance: none; }
         .time-input:focus { background: var(--sage-pale); }
@@ -442,7 +447,6 @@ function renderAll() {
     addBtn.id = 'add-card-btn';
     addBtn.innerHTML = '<div class="add-card-inner"><div class="add-icon">＋</div><span>新增任務</span></div>';
 
-    /* ── 修正：新增後立即本地更新，不依賴 Realtime ── */
     addBtn.onclick = async () => {
         addBtn.classList.add('loading');
         addBtn.querySelector('span').textContent = '新增中…';
@@ -457,7 +461,6 @@ function renderAll() {
             return;
         }
         if (data) {
-            // 避免 Realtime 重複插入
             if (!timers.find(x => x.id === data.id)) {
                 timers.push({ ...data, endTime: null });
             }
@@ -485,8 +488,10 @@ function buildCard(t) {
     const classes    = ['timer-card', t.is_active && 'running', isDone && 'done', u && `${u}-card`].filter(Boolean).join(' ');
     const badgeText  = u === 'critical' ? '🔴 即將完成' : u === 'urgent' ? '🟡 快要結束' : '▶ 計時中';
     const statusText = isDone ? '已結束' : t.is_active ? (u === 'critical' ? '即將完成' : u === 'urgent' ? '快要結束' : '正在計時') : '點擊開始';
-    const mins       = String(Math.floor(t.remaining_seconds / 60)).padStart(2, '0');
-    const secs       = String(t.remaining_seconds % 60).padStart(2, '0');
+
+    /* ── 修正：分鐘不補零（避免 999 顯示成 099），秒維持兩位 ── */
+    const mins = String(Math.floor(t.remaining_seconds / 60));
+    const secs = String(t.remaining_seconds % 60).padStart(2, '0');
 
     const card = document.createElement('div');
     card.className  = classes;
@@ -507,10 +512,12 @@ function buildCard(t) {
             onblur="onNameBlur(this,'${t.id}')">
         <div class="time-display">
             <input type="number" class="time-input" data-role="min" value="${mins}"
+                min="0"
                 onfocus="editingId='${t.id}'; this.select()"
                 onblur="onTimeBlur(this,'${t.id}')">
             <span class="time-sep">:</span>
             <input type="number" class="time-input" data-role="sec" value="${secs}"
+                min="0" max="59"
                 onfocus="editingId='${t.id}'; this.select()"
                 onblur="onTimeBlur(this,'${t.id}')">
         </div>
@@ -529,7 +536,8 @@ function updateCardDisplay(t) {
 
     const mEl = card.querySelector('[data-role="min"]');
     const sEl = card.querySelector('[data-role="sec"]');
-    if (mEl) mEl.value = String(Math.floor(t.remaining_seconds / 60)).padStart(2, '0');
+    /* 修正：分鐘不補零 */
+    if (mEl) mEl.value = String(Math.floor(t.remaining_seconds / 60));
     if (sEl) sEl.value = String(t.remaining_seconds % 60).padStart(2, '0');
 
     const RING_R = 12, CIRC = 2 * Math.PI * RING_R;
@@ -562,7 +570,8 @@ async function onTimeBlur(el, id) {
     if (!card) return;
     const m = parseInt(card.querySelector('[data-role="min"]').value) || 0;
     const s = parseInt(card.querySelector('[data-role="sec"]').value) || 0;
-    const total = Math.min(99, m) * 60 + Math.min(59, s);
+    /* 修正：移除分鐘 99 上限，秒數仍限制 0–59 */
+    const total = Math.max(0, m) * 60 + Math.min(59, Math.max(0, s));
     const t = timers.find(x => x.id === id);
     if (!t) return;
     t.remaining_seconds = total;
@@ -582,7 +591,6 @@ async function onTimeBlur(el, id) {
 async function toggleTimer(id) {
     const t = timers.find(x => x.id === id);
     if (!t) return;
-    // Tap done-card → reset
     if (!t.is_active && t.initial_seconds > 0 && t.remaining_seconds <= 0) {
         t.remaining_seconds = 0; t.initial_seconds = 0;
         renderAll();
@@ -607,7 +615,6 @@ db.channel('timer-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: CONFIG.TABLE }, p => {
         if (editingId) return;
         if (p.eventType === 'INSERT') {
-            /* 修正：避免與本地樂觀更新重複 */
             if (!timers.find(x => x.id === p.new.id)) {
                 timers.push({
                     ...p.new,
